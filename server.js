@@ -5,58 +5,101 @@ const jpeg = require('jpeg-js');
 const { open } = require('rosbag');
 
 const server = express();
-
 const port = process.env.PORT || 8000;
 
 server.get('/', (req, res) => {
     res.sendFile(__dirname + "/routes/index.html");
 });
 
-async function logMessagesFromFooBar() {
-    // open a new bag at a given file location:
-    const bag = await open(__dirname + '/public/bagFile/ros-1.bag');
+async function logMessagesFromFooBar(bagFile) {
+    const bag = await open(__dirname + `/public/bagFile/${bagFile}.bag`)
 
-    var tp = [];    // All topics in the bag file
-    var enc = [];   // All encoding in the bag file
-    var i = 0;
+    var topics = [];    // All topics in the bag file
+    var encodings = [];   // All encoding in the bag file
+    var percentage = 0;
 
-    //console.log(util.inspect(bag, {depth: 2, colors: true, compact: true}));
+    //console.log(util.inspect(bag, {depth: 5, colors: true, compact: true}));
 
-    // se è vuoto, di default, legge tutti i topics
-    await bag.readMessages({topics: ['camera_down/rgb/image_raw']}, (result) => {
+    // Save all the topics in the bag file
+    for (var i = 0; i < bag.header.connectionCount; i++)
+        if (!topics.includes(bag.connections[i].topic))
+            topics.push(bag.connections[i].topic);
+    
 
-            console.log("Campo message: " + util.inspect(result, {depth: 5, colors: true, compact: true}));
+    // Check if the bag folder to keep all images already exist
+    fs.access(__dirname + `/public/bagFile/${bagFile}`, (access_error) => {
+        if (access_error) {
+            fs.mkdir(__dirname + `/public/bagFile/${bagFile}`, (create_error) => {
+                if (create_error) {
+                    console.info(`Error on create folder ${bagFile} with the following error`);
+                    console.error(create_error);
+                } else {
+                    console.info(`Folder ${bagFile} created`);
+                }
+            });
+        } else {
+            console.info(`Folder ${bagFile} already exist`);
+        }
+    });
+
+    // if empty, by default read all topics
+    await bag.readMessages({}, (result) => {
+            
+            //console.log("Campo message: " + util.inspect(result, {depth: 5, colors: true, compact: true}));
+
+            // calculate the percentage of progress
+            var total = parseInt(result.chunkOffset / result.totalChunks * 100);
+            if (total > percentage) {
+                percentage = total;
+                console.log(percentage + "%");
+            }
             
             if (result.message.data != undefined && result.message.encoding != undefined) {
+                var formatted_topic = result.topic.split('/').join('_');
+                
+                // Check if for each topics there is already a folder where you can save the foto
+                fs.access(__dirname + `/public/bagFile/${bagFile}/${formatted_topic}`, (access_error) => {
+                    if (access_error) {
+                        fs.mkdir(__dirname + `/public/bagFile/${bagFile}/${formatted_topic}`, (create_error) => {
+                            if (create_error)
+                                console.info(`Error on create folder ${formatted_topic} with the following error`)
+                                console.error(create_error);
+                        });
+                    }
+                });
+
+                // Works with only encoding rgb8
                 var rawImageData = {
                     data: result.message.data,
-                    width: 240, //no result.message.width
+                    width: 240, //doesn't works with result.message.width
                     height: result.message.height
                 };
                 var jpegImageData = jpeg.encode(rawImageData, 50);
 
-                fs.writeFileSync(__dirname + `/public/bagFile/images/bag1_img-${i++}.png`, jpegImageData.data);
+                try {
+                    fs.writeFileSync(__dirname + `/public/bagFile/${bagFile}/${formatted_topic}/img-${result.message.header.seq}.png`, jpegImageData.data, {flag: "w"});
+                } catch(error) {
+                    console.info(`Error on create image ${formatted_topic}/img-${result.message.header.seq}.png with the following error`);
+                    console.error(error);
+                }
             }
             
-            if(!tp.includes(result.topic)) 
-                tp.push(result.topic);
-            if (!enc.includes(result.message.encoding))
-                enc.push(result.message.encoding);
+            // Save all the image encoding 
+            if (!encodings.includes(result.message.encoding))
+                encodings.push(result.message.encoding);
     });
-    console.log(tp);
-    console.log(enc);
+
+    console.log(topics);
+    console.log(encodings);
 }
 
 server.get("/bag", (req, res) => {
-    logMessagesFromFooBar();
-    res.send("Succesfull");
-
-    /*const rest = Buffer.from(fs.readFileSync(__dirname + '/public/bagFile/images/test.png'));
-    console.log('typeof rest = ' + typeof rest + '\r\n\r\n', rest);
-    const b64 = rest.toString('base64');
-    const mimeType = 'image/png';
-    fs.writeFileSync(__dirname + `/public/bagFile/images/bag1_img-1.png`, b64, "base64");
-    res.send(`<img src="data:${mimeType};base64,${b64}" />`);*/
+    logMessagesFromFooBar("ros-1").then((data) => {
+        res.send("Succesfull");
+    })
+    .catch((error) => {
+        res.send(error);
+    })
 });
   
 server.listen(port, () => {
