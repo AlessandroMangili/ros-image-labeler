@@ -1,10 +1,28 @@
 <!DOCTYPE html>
 <html>
+    <script src = "/socket.io/socket.io.js"></script>
 <body>
+    
+    <h1>My First Heading</h1>
 
-<h1>My First Heading</h1>
+    <p>My first paragraph.</p>
 
-<p>My first paragraph.</p>
+    <form id="form">    
+        <input type="submit" value="extract" id="input" />
+    </form>
 
+    <script>
+        var socket = io();
+
+        var form = document.getElementById('form');
+        var input = document.getElementById('input');
+
+        form.addEventListener('click', function(e) {
+            e.preventDefault();
+            socket.emit('clicked', "ros-1", (res) => {
+                console.log(res);
+            });
+        });
+    </script>
 </body>
 </html>
