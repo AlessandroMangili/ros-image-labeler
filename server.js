@@ -65,7 +65,7 @@ async function extract_from_bagFile(bagFile) {
     var encodings = [];   // All encoding in the bag file
     var percentage = 0;
 
-    //console.log(util.inspect(bag, {depth: 5, colors: true, compact: true}));
+    //console.log(util.inspect(bag, {depth: 5, colors: true, compact: true}));bag
 
     // Save all the topics in the bag file
     for (var i = 0; i < bag.header.connectionCount; i++)
