@@ -93,6 +93,7 @@ async function extract_from_bagFile(bagFile) {
 
     try {
         await bag.readMessages({}, (result) => {
+
             //console.log("Campo message: " + util.inspect(result, {depth: 5, colors: true, compact: true}));
     
             // calculate the percentage of progress
@@ -124,9 +125,17 @@ async function extract_from_bagFile(bagFile) {
                 } catch (access_error) {
                     try {
                         // CREATE IMAGE
-                        let encode = result.message.encoding == "rgb8" ? cv.CV_8UC3 : cv.CV_32F;
-                        let matFromArray = new cv.Mat(Buffer.from(result.message.data), result.message.height, result.message.width, encode);
-                        cv.imwrite(__dirname + `/bagFile/${bagFile}/${formatted_topic}/img-${result.message.header.seq}.png`, matFromArray);
+                        let matRGB = new cv.Mat();
+                        // Encoding from BGR to RGB
+                        if (result.message.encoding == "rgb8") {
+                            let matFromArray = new cv.Mat(Buffer.from(result.message.data), result.message.height, result.message.width, cv.CV_8UC3);
+                            let [matB, matG, matR] = matFromArray.splitChannels();
+                            matRGB = new cv.Mat([matR, matG, matB]);
+                        } else {
+                            buffer = new Float32Array(result.message.data);
+                            encode = cv.CV_32FC1;
+                        }                        
+                        cv.imwrite(__dirname + `/bagFile/${bagFile}/${formatted_topic}/img-${result.message.header.seq}.png`, matRGB);
                     } catch(error) {
                         console.warn(`Error on create image ${formatted_topic}/img-${result.message.header.seq}.png with the following error`);
                         console.error(error);
@@ -146,3 +155,25 @@ async function extract_from_bagFile(bagFile) {
     console.log(topics);
     console.log(encodings);
 }
+
+/*
+// utility function, creates array of numbers from `start` to `stop`, with given `step`:
+const range = (start, stop, step = 1280) =>
+Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step)
+
+
+// uint8 array with 2 floats inside, 1.0 and -1.0
+numberOfFloats = result.message.data.byteLength / 4;
+dataView = new DataView(result.message.data.buffer);
+// sometimes your Uint8Array is part of larger buffer, then you will want to do this instead of line above:
+// dataView = new DataView(uint8array.buffer, uint8array.byteOffset, uint8array.byteLength) 
+
+arrayOfNumbers = range(0, numberOfFloats).map(idx => dataView.getFloat32(idx * 4, false));  
+// be careful with endianness, you may want to do:
+// arrayOfNumbers = range(0, numberOfFloats).map(idx => dataView.getFloat32(idx * 4, true))
+
+float32array = new Float32Array(arrayOfNumbers);
+console.log(float32array);
+
+buffer = float32array;
+*/
