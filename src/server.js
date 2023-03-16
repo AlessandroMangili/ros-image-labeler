@@ -4,15 +4,15 @@ const util = require('util');
 const http = require('http');
 const { Server } = require("socket.io");
 const { open } = require('rosbag');
-
-//const services = require('./services');
+const {MongoClient} = require('mongodb');
 const cv = require('/usr/lib/node_modules/opencv4nodejs');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-/*app.set('views', __dirname + '/views');
+/*
+app.set('views', __dirname + '/views');
 app.set('view engine', 'html');
 
 app.use(express.static(__dirname + '/views'));
@@ -45,6 +45,8 @@ io.on('connection', (socket) => {
         console.log('user disconnected');
     });
 });
+
+// MONGODB
 
 // CONNECTION
 
