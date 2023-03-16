@@ -1,20 +1,35 @@
 {
-  "dependencies": {
-    "expess": "^0.0.1-security",
-    "express": "^4.18.2",
-    "jpeg-js": "^0.4.4",
-    "nodemon": "^2.0.21",
-    "rosbag": "^3.0.1",
-    "socket.io": "^4.6.1"
+  "name": "opencv-express",
+  "version": "0.0.4",
+  "description": "Example for using opencv4nodejs with express.js and docker.",
+  "keywords": [
+    "opencv",
+    "cv",
+    "express",
+    "server",
+    "socket.io",
+    "docker",
+    "face",
+    "detection"
+  ],
+  "author": "justadudewhohacks",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/justadudewhohacks/opencv-express"
   },
+  "bugs": {
+    "url": "https://github.com/justadudewhohacks/opencv-express/issues"
+  },
+  "homepage": "https://github.com/justadudewhohacks/opencv-express#readme",
   "scripts": {
-    "start": "node server.js"
+    "start": "docker-compose up"
   },
-  "name": "tirocinio",
-  "version": "1.0.0",
-  "main": "server.js",
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": ""
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.15.5",
+    "rosbag": "^3.0.1",
+    "socket.io": "^4.6.1",
+    "socket.io-client": "^4.6.1"
+  }
 }
