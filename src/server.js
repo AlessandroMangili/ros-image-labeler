@@ -22,7 +22,6 @@ app.use(require('body-parser').json({ limit: '10mb' }));
 const port = process.env.PORT || 8000;
 
 app.get('/', (req, res) => {
-    extract_from_bagFile("ros-1");
     res.sendFile(__dirname + '/views/index.html');
 });
 
@@ -92,11 +91,12 @@ async function extract_from_bagFile(bagFile) {
     });
 
     try {
+        // If empty, by default it reads all topics
         await bag.readMessages({}, (result) => {
 
             //console.log("Campo message: " + util.inspect(result, {depth: 5, colors: true, compact: true}));
     
-            // calculate the percentage of progress
+            // Calculate the percentage of progress
             var total = parseInt(result.chunkOffset / result.totalChunks * 100);
             if (total > percentage) {
                 percentage = total;
@@ -125,17 +125,19 @@ async function extract_from_bagFile(bagFile) {
                 } catch (access_error) {
                     try {
                         // CREATE IMAGE
-                        let matRGB = new cv.Mat();
+                        let matrix;
                         // Encoding from BGR to RGB
                         if (result.message.encoding == "rgb8") {
                             let matFromArray = new cv.Mat(Buffer.from(result.message.data), result.message.height, result.message.width, cv.CV_8UC3);
                             let [matB, matG, matR] = matFromArray.splitChannels();
-                            matRGB = new cv.Mat([matR, matG, matB]);
+                            matrix = new cv.Mat([matR, matG, matB]);
                         } else {
-                            buffer = new Float32Array(result.message.data);
-                            encode = cv.CV_32FC1;
+                            let matFromArray = new cv.Mat(Buffer.from(result.data), result.message.height, result.message.width, cv.CV_8UC4);
+                            let [matB, matG, matR, matX] = matFromArray.splitChannels();
+                            matrix = new cv.Mat([matX]);
+                            //console.log(matrix);
                         }                        
-                        cv.imwrite(__dirname + `/bagFile/${bagFile}/${formatted_topic}/img-${result.message.header.seq}.png`, matRGB);
+                        cv.imwrite(__dirname + `/bagFile/${bagFile}/${formatted_topic}/img-${result.message.header.seq}.png`, matrix);
                     } catch(error) {
                         console.warn(`Error on create image ${formatted_topic}/img-${result.message.header.seq}.png with the following error`);
                         console.error(error);
@@ -150,7 +152,6 @@ async function extract_from_bagFile(bagFile) {
     } catch (bag_error) {
         console.error(bag_error);
     }
-    // if empty, by default it reads all topics
 
     console.log(topics);
     console.log(encodings);
