@@ -4,7 +4,7 @@ const util = require('util');
 const http = require('http');
 const { Server } = require("socket.io");
 const { open } = require('rosbag');
-const {MongoClient} = require('mongodb');
+//const {MongoClient} = require('mongodb');
 const cv = require('/usr/lib/node_modules/opencv4nodejs');
 
 const app = express();

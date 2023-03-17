@@ -1,7 +1,7 @@
 {
-  "name": "opencv-express",
+  "name": "Tirocinio",
   "version": "0.0.4",
-  "description": "Example for using opencv4nodejs with express.js and docker.",
+  "description": "Simple web tool for image annotation.",
   "keywords": [
     "opencv",
     "cv",
@@ -16,12 +16,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/justadudewhohacks/opencv-express"
+    "url": "git+https://github.com/AlessandroMangili/Bag-tool-for-labeling"
   },
-  "bugs": {
-    "url": "https://github.com/justadudewhohacks/opencv-express/issues"
-  },
-  "homepage": "https://github.com/justadudewhohacks/opencv-express#readme",
+  "homepage": "https://github.com/AlessandroMangili/Bag-tool-for-labeling#readme",
   "scripts": {
     "start": "docker-compose up"
   },
