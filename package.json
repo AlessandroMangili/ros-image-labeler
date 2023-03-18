@@ -1,6 +1,6 @@
 {
-  "name": "Tirocinio",
-  "version": "0.0.4",
+  "name": "tirocinio",
+  "version": "1.0.0",
   "description": "Simple web tool for image annotation.",
   "keywords": [
     "opencv",
@@ -8,11 +8,9 @@
     "express",
     "server",
     "socket.io",
-    "docker",
-    "face",
-    "detection"
+    "docker"
   ],
-  "author": "justadudewhohacks",
+  "author": "Alessandro Mangili",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -27,7 +25,6 @@
     "express": "^4.15.5",
     "mongodb": "^5.1.0",
     "rosbag": "^3.0.1",
-    "socket.io": "^4.6.1",
-    "socket.io-client": "^4.6.1"
+    "socket.io": "^4.6.1"
   }
 }

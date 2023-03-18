@@ -4,8 +4,10 @@ const util = require('util');
 const http = require('http');
 const { Server } = require("socket.io");
 const { open } = require('rosbag');
-//const {MongoClient} = require('mongodb');
-const cv = require('/usr/lib/node_modules/opencv4nodejs');
+const { MongoClient } = require('mongodb');
+const cv = require('opencv4nodejs');
+
+require('./Javascript/connection');
 
 const app = express();
 const server = http.createServer(app);
@@ -48,10 +50,22 @@ io.on('connection', (socket) => {
 
 // MONGODB
 
+async function connect() {
+    try {
+        const client = new MongoClient(URI, { useUnifiedTopology: true });
+        await client.connect();
+        console.log("Connected to MongoDB");
+    } catch(connect_error) {
+        console.log(`Error on cennected to MongoDB with the following error:`);
+        console.error(connect_error);
+    }
+}
+
 // CONNECTION
 
 server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
+    connect();
 });
 
 // FUNCTIONS
