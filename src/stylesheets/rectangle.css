@@ -1,0 +1,14 @@
+body { background-color: ivory; }
+
+#container {
+  position:fixed;
+  border: 1px solid red;
+  width: 900px;
+  height: 500px;
+  background-image: url("../th-319280619.jpg");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  display: block;
+  left: 25%;
+  top: 25%;
+}
