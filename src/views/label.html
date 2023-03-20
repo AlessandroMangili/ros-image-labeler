@@ -3,19 +3,109 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!-- bootstrap -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+
         <script type="text/javascript" src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+        <!-- JQuery UI-->
+        <script type="text/javascript" src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+        <link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+
         <script src="https://unpkg.com/konva@8.4.2/konva.min.js"></script>
         <link type="text/css" rel="stylesheet" href="/stylesheets/rectangle.css">
     </head>
     <body>
+
+        <div id="viewport">
+            <div id="sidebar">
+                <header style = "padding-bottom: 5%;">
+                    <button class="btn btn-primary" id="addClass" type="submit">Add class</button>
+                </header>
+                <div class="list-group" id="classList"></div>
+            </div>
+        </div>
+
+        <form>
+            <div id="dialog" title="Set the class">
+                <div style="align-items: center;">
+                    <label>Set the name of the class: </label>
+                    <input type="text" id="className" value="">
+                </div>
+                <div style="text-align:center;">
+                    <label>Set the color of the class: </label>
+                    <input type="color" id="classColor">
+                </div>
+            </div>
+        </form>
+        
+        
         <div id="container"></div>
         
         <script>    
             //var socket = io();
+
+            var addClass = document.getElementById("addClass");
+            var list = document.getElementById("classList");
+            var stroke = "";
+
+            $("#dialog").dialog({
+                autoOpen: false,
+                //open: () => $(".ui-dialog-titlebar-close").hide(),
+                resizable: false,
+                buttons: [
+                    {
+                    text: "Ok",
+                    icon: "ui-icon-heart",
+                    click: function() {
+                        var find = false;
+                        var name = $('input[id="className"]').val();
+                        var colorpick = $('input[id="classColor"]').val();
+                        if (name == null || name == "") {
+                            alert("You have to insert the name of the class");
+                            return;
+                        }
+
+                        // Check if name or color exist already
+                        list.childNodes.forEach((node) => {
+                            if (node.href.substring(node.href.indexOf("#"), node.href.length) == colorpick || node.text == name) {
+                                find = true;
+                                return;
+                            }
+                        });
+
+                        if (find) {
+                            alert("The name or the color is already in use");
+                            return;
+                        }
+
+                        // Add node
+                        var doc = document.createElement("a")
+                        doc.innerHTML = name;
+                        doc.className = "list-group-item list-group-item-action";
+                        doc.href = colorpick;
+                        doc.addEventListener('click', (e) => {
+                            stroke = e.target.href.substring(e.target.href.indexOf("#"), e.target.href.length);
+                        });
+
+                        list.appendChild(doc);
+                        $(this).dialog("close");
+                        
+                        
+                    }
+                    //showText: false
+                    }
+                ],
+                dialogClass: "popup",
+                draggable: false
+            });
+
+            addClass.addEventListener('click', (e) => {
+                $('#dialog').dialog('open');
+            });
             
             var div = document.getElementById("container");
-            console.log(div);
 
             var stage = new Konva.Stage({
                 container: 'container',
@@ -93,19 +183,27 @@
         
                 var shapes = stage.find('.rect');
                 var box = selectionRectangle.getClientRect();
-                var selected = shapes.filter((shape) =>
-                    Konva.Util.haveIntersection(box, shape.getClientRect())
-                );
-                tr.nodes(selected);
+                if (box.width != 0 && box.height != 0) {
+                    var selected = shapes.filter((shape) =>
+                        Konva.Util.haveIntersection(box, shape.getClientRect())
+                    );
+                    tr.nodes(selected);
+                } else {
+                    tr.nodes([]);
+                }
 
                 if (wantDraw) {
-                    var rect = new Konva.Rect({
+                    if (stroke == "") {
+                        alert("You need first to create a class");
+                        return;
+                    }
+                    let rect = new Konva.Rect({
                         x: selectionRectangle.attrs.x,
                         y: selectionRectangle.attrs.y,
                         width: selectionRectangle.attrs.width,
                         height: selectionRectangle.attrs.height,
                         name: 'rect',
-                        stroke: 'white',
+                        stroke: stroke,
                         strokeWidth: 3,
                         draggable: true,
                     });
@@ -115,7 +213,7 @@
             });
         
             // clicks should select/deselect shapes
-            stage.on('click tap', function (e) {
+            stage.on('click', (e) => {
                 // if we are selecting with rect, do nothing
                 if (selectionRectangle.visible())
                     return;
@@ -153,7 +251,7 @@
                 }
             });
 
-            stage.on('dblclick', function(e) {
+            /*stage.on('dblclick', (e) => {
                 if (selectionRectangle.visible())
                     return;
                 
@@ -166,16 +264,12 @@
                 // do nothing if clicked NOT on our rectangles
                 if (!e.target.hasName('rect'))
                     return;
-                    
-                // SET LABEL
-            });
+            });*/
 
             
-            container.addEventListener('keydown', function (e) {
-                console.log(e);
+            container.addEventListener('keydown', (e) => {
                 // Canc key
                 if (e.keyCode == 46) {
-                    console.log(layer.getChildren());
                     tr.nodes().forEach(node => {
                         node.remove();
                     });

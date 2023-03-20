@@ -1,14 +1,66 @@
-body { background-color: ivory; }
+body { 
+  background-color: ivory; 
+  font-family: 'Roboto', sans-serif;
+  font-size: 16px;
+  overflow-x: hidden;
+}
 
 #container {
-  position:fixed;
-  border: 1px solid red;
-  width: 900px;
-  height: 500px;
-  background-image: url("../th-319280619.jpg");
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
+    position:fixed;
+    border: 1px solid ivory;
+    width: 600px;
+    height: 400px;
+    background-image: url("../th-319280619.jpg");
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    display: block;
+    left: 35%;
+    top: 25%;
+}
+
+@import url('https://fonts.googleapis.com/css?family=Roboto:300,400,400i,500');
+
+/* Toggle Styles */
+
+#viewport {
+  padding-left: 250px;
+  -webkit-transition: all 0.5s ease;
+  -moz-transition: all 0.5s ease;
+  -o-transition: all 0.5s ease;
+  transition: all 0.5s ease;
+}
+
+/* Sidebar Styles */
+
+#sidebar {
+  z-index: 1000;
+  position: fixed;
+  left: 250px;
+  width: 20%;
+  height: 100%;
+  margin-left: -250px;
+  overflow-y: auto;
+  background: #37474F;
+  -webkit-transition: all 0.5s ease;
+  -moz-transition: all 0.5s ease;
+  -o-transition: all 0.5s ease;
+  transition: all 0.5s ease;
+}
+
+#sidebar header {
+  color: #fff;
   display: block;
-  left: 25%;
-  top: 25%;
+  background-color: #263238;
+  line-height: 52px;
+  text-align: center;
+  text-decoration: none;
+}
+
+#sidebar .nav {
+  background: none;
+  border-bottom: 1px solid #455A64;
+  color: #CFD8DC;
+  font-size: 14px;
+  padding: 16px 24px;
+  margin-right: 16px;
 }
