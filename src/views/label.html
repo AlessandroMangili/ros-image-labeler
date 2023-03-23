@@ -3,28 +3,36 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <!-- bootstrap -->
+        <!-- Bootstrap -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
-
+        <!-- Socker.io -->
         <script type="text/javascript" src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+        <!-- JQuery -->
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
-        <!-- JQuery UI-->
+        <!-- JQuery UI -->
         <script type="text/javascript" src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
         <link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
-
+        <!-- W3school right sidebar -->
+        <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+        <!-- Konva bounding box -->
         <script src="https://unpkg.com/konva@8.4.2/konva.min.js"></script>
         <link type="text/css" rel="stylesheet" href="/stylesheets/rectangle.css">
     </head>
-    <body>
+    <body id="workspace">
+        <div class="w3-sidebar w3-bar-block w3-card" id="sidebar-left">
+            <header style = "padding-bottom: 2%;">
+                <button class="btn btn-primary" id="addClass" type="submit">Add class</button>
+            </header>
+            <div class="list-group" id="classList"></div>
+        </div>
 
-        <div id="viewport">
-            <div id="sidebar">
-                <header style = "padding-bottom: 5%;">
-                    <button class="btn btn-primary" id="addClass" type="submit">Add class</button>
-                </header>
-                <div class="list-group" id="classList"></div>
-            </div>
+        <div class="w3-sidebar w3-bar-block w3-card" id="sidebar-right">
+            <header style = "padding-bottom: 2%;">
+                <label for="sub-labelings"> Check if you want to sub-labeling </label>
+                <input type="checkbox" id="sub-labeling">
+            </header>
+            <div class="list-group" id="subList"></div>
         </div>
 
         <form>
@@ -40,72 +48,115 @@
             </div>
         </form>
         
-        
         <div id="container"></div>
+        <div>
+            <div style="text-align:center;">
+                <label>Select the topic: </label>
+                <select id="topics">
+                    <option value="camera_down_rgb_image_raw">RGB DOWN</option>
+                    <option value="camera_up_rgb_image_raw">RGB UP</option>
+                </select>
+            </div>
+        </div>
         
-        <script>    
-            //var socket = io();
+        <script>
+            var socket = io();
 
-            var addClass = document.getElementById("addClass");
+            var class_name;
+            var image_counter = 0;
+
             var list = document.getElementById("classList");
-            var stroke = "";
+            var checkbox = document.getElementById("sub-labeling");
+            var sub_list = document.getElementById("subList");
+            var div = document.getElementById("container");
+            var topic = document.getElementById("topics");
+
+            div.style.backgroundImage = `url(../bagFile/ros-1/${topic.value}/img-${image_counter++}.png)`;
+
+            topic.addEventListener('change', (e) => {
+                image_counter = 0;
+                div.style.backgroundImage = `url(../bagFile/ros-1/${topic.value}/img-${image_counter++}.png)`;
+                remove_bounding_box();
+            })
+
+            // Set the display value of sub_class list
+            checkbox.addEventListener('change', (e) => {
+                if (!e.currentTarget.checked) {
+                    sub_list.style.visibility = "hidden";
+                    let parent = document.getElementById("subList");
+                    parent.childNodes.forEach(node => {
+                        node.style.backgroundColor = "#fff";
+                    });
+                } else {
+                    sub_list.style.visibility = "";
+                }
+            });
+
+            $("#workspace").on("keydown", (e) => {
+                if (e.keyCode == 37 && image_counter > 0) { // Left arrow
+                    div.style.backgroundImage = `url(../bagFile/ros-1/${topic.value}/img-${--image_counter}.png)`;
+                    remove_bounding_box();                    
+                } else if (e.keyCode == 39) { //Right arrow
+                    div.style.backgroundImage = `url(../bagFile/ros-1/${topic.value}/img-${++image_counter}.png)`;
+                    remove_bounding_box();
+                }
+            });
+
+            document.getElementById("addClass").addEventListener('click', (e) => {
+                $('#dialog').dialog('open');
+            });
+
+            // Fill the left sidebar with the classes already saved
+            socket.emit('get classes', "", (res) => {
+                res.forEach(node => {
+                    create_class(node);
+                });
+            });            
 
             $("#dialog").dialog({
                 autoOpen: false,
-                //open: () => $(".ui-dialog-titlebar-close").hide(),
                 resizable: false,
                 buttons: [
                     {
-                    text: "Ok",
-                    icon: "ui-icon-heart",
-                    click: function() {
-                        var find = false;
-                        var name = $('input[id="className"]').val();
-                        var colorpick = $('input[id="classColor"]').val();
-                        if (name == null || name == "") {
-                            alert("You have to insert the name of the class");
-                            return;
-                        }
+                        text: "Ok",
+                        icon: "ui-icon-heart",
+                        click: function() {
+                            try {
+                                var name = $('input[id="className"]').val();
+                                var colorpick = $('input[id="classColor"]').val();
 
-                        // Check if name or color exist already
-                        list.childNodes.forEach((node) => {
-                            if (node.href.substring(node.href.indexOf("#"), node.href.length) == colorpick || node.text == name) {
-                                find = true;
-                                return;
+                                if (name == null || name == "") 
+                                    throw "You have to insert the name of the class";
+                                
+
+                                // Check if name or color exist already
+                                list.childNodes.forEach((node) => {
+                                    if (node.title == colorpick || node.text == name) 
+                                        throw "The name or the color is already in use";
+                                });
+
+                                let msg = {
+                                    name: name,
+                                    color: colorpick
+                                };
+
+                                // Add class to left sidebar
+                                create_class(msg);
+                            
+                                // Save class to nodejs
+                                socket.emit('add class', msg);
+
+                                // Close the popup
+                                $(this).dialog("close");
+                            } catch (e) {
+                                alert(e);
                             }
-                        });
-
-                        if (find) {
-                            alert("The name or the color is already in use");
-                            return;
                         }
-
-                        // Add node
-                        var doc = document.createElement("a")
-                        doc.innerHTML = name;
-                        doc.className = "list-group-item list-group-item-action";
-                        doc.href = colorpick;
-                        doc.addEventListener('click', (e) => {
-                            stroke = e.target.href.substring(e.target.href.indexOf("#"), e.target.href.length);
-                        });
-
-                        list.appendChild(doc);
-                        $(this).dialog("close");
-                        
-                        
-                    }
-                    //showText: false
                     }
                 ],
                 dialogClass: "popup",
                 draggable: false
             });
-
-            addClass.addEventListener('click', (e) => {
-                $('#dialog').dialog('open');
-            });
-            
-            var div = document.getElementById("container");
 
             var stage = new Konva.Stage({
                 container: 'container',
@@ -138,7 +189,6 @@
                 // do nothing if we mousedown on any shape
                 if (e.target !== stage) 
                     return;
-                
 
                 e.evt.preventDefault();
                 x1 = stage.getPointerPosition().x;
@@ -192,23 +242,52 @@
                     tr.nodes([]);
                 }
 
+                // Chack if the user pressed ctrl key for draw the bounding box
                 if (wantDraw) {
-                    if (stroke == "") {
-                        alert("You need first to create a class");
+                    // Assign the color of the bounding box
+                    try {
+                        list.childNodes.forEach(node => {
+                        if (node.style.backgroundColor == "red")
+                            throw node;
+                        });
+                        alert("You need first to create or select a class");
                         return;
+                    } catch (e) {
+                        let rect = new Konva.Rect({
+                            x: selectionRectangle.attrs.x,
+                            y: selectionRectangle.attrs.y,
+                            width: selectionRectangle.attrs.width,
+                            height: selectionRectangle.attrs.height,
+                            name: "rect",
+                            stroke: e.title,
+                            strokeWidth: 3,
+                            draggable: true,
+                        });
+                        layer.add(rect);
+                        wantDraw = false;
                     }
-                    let rect = new Konva.Rect({
-                        x: selectionRectangle.attrs.x,
-                        y: selectionRectangle.attrs.y,
-                        width: selectionRectangle.attrs.width,
-                        height: selectionRectangle.attrs.height,
-                        name: 'rect',
-                        stroke: stroke,
-                        strokeWidth: 3,
-                        draggable: true,
-                    });
-                    layer.add(rect);
-                    wantDraw = false;
+
+                    // If checkbox is not flagged, just return
+                    if (!checkbox.checked)
+                        return;
+                    
+                    try {
+                        // If a sub_class is already select, don't create a new sub_class
+                        sub_list.childNodes.forEach(node => {
+                            if (node.style.backgroundColor == "red")
+                                throw node;
+                        });
+                       
+                        // Create a new sub_class
+                        msg = {
+                            name : class_name,
+                            id : sub_list.hasChildNodes() ? parseInt(sub_list.lastElementChild.innerHTML) + 1 : 0
+                        };
+                        create_sub_classes(msg.id, sub_list);
+                        socket.emit('add subClass', msg);
+                    } catch (e) {
+                        console.log(e.innerHTML);
+                    }                 
                 }
             });
         
@@ -250,25 +329,9 @@
                     tr.nodes(nodes);
                 }
             });
-
-            /*stage.on('dblclick', (e) => {
-                if (selectionRectangle.visible())
-                    return;
-                
-                // if click on empty area - remove all selections
-                if (e.target === stage) {
-                    tr.nodes([]);
-                    return;
-                }
-        
-                // do nothing if clicked NOT on our rectangles
-                if (!e.target.hasName('rect'))
-                    return;
-            });*/
-
             
+            // Function to delete bounding box on canc key press
             container.addEventListener('keydown', (e) => {
-                // Canc key
                 if (e.keyCode == 46) {
                     tr.nodes().forEach(node => {
                         node.remove();
@@ -276,6 +339,76 @@
                     tr.nodes([]);
                 }
             });
+        </script>
+        <script>
+            // FUNCTION
+            function create_class(msg) {
+                var node = document.createElement("a");
+                node.innerHTML = msg.name;
+                node.className = "list-group-item list-group-item-action";
+                node.title = msg.color;
+                node.addEventListener('click', (e) => {
+                    if (e.target.style.backgroundColor == "red") {
+                        e.target.style.backgroundColor = "#fff";
+                    } else {
+                        socket.emit('get subClasses', msg.name, (res) => {
+                            while(sub_list.hasChildNodes()) {
+                                    sub_list.removeChild(sub_list.lastElementChild);
+                            }
+
+                            // Add sub_classes to right sidebar
+                            res.forEach(id => {
+                                create_sub_classes(id);
+                            });
+                        });
+                        class_name = msg.name;
+                        // Change backgournd color to set the effect of itme select
+                        set_selection("classList", e);
+                    }
+
+                    // Set visibility for sub_classes list
+                    if (!checkbox.checked) 
+                        sub_list.style.visibility = "hidden";
+                });
+                list.appendChild(node);
+            }
+
+            function create_sub_classes(id) {
+                var node = document.createElement("a");
+                node.innerHTML = id;
+                node.className = "list-group-item list-group-item-action";
+                node.addEventListener('click', (e) => {
+                    if (e.target.style.backgroundColor == "red") {
+                        e.target.style.backgroundColor = "#fff";
+                    } else {
+                        // Set the item to selected
+                        set_selection("subList", e);
+                    }
+                });
+                sub_list.appendChild(node);
+            }
+
+            // Change background color to select the item
+            function set_selection(div_id, dest) {
+                let parent = document.getElementById(div_id);
+                parent.childNodes.forEach(node => {
+                    node.style.backgroundColor = "#fff";
+                });
+                dest.target.style.backgroundColor = "red";
+            } 
+
+            // Remove all bounding box from container
+            function remove_bounding_box() {
+                let remove = layer.getChildren(node => {
+                    return node.getClassName() === 'Rect';
+                });
+
+                remove.forEach(node => {
+                    // Don't delete the ability to draw selection rectangle
+                    if (node._id != 14)
+                        node.remove();
+                });
+            }
         </script>
     </body>
 </html>

@@ -7,60 +7,34 @@ body {
 
 #container {
     position:fixed;
-    border: 1px solid ivory;
-    width: 600px;
-    height: 400px;
-    background-image: url("../th-319280619.jpg");
+    width: 35%;
+    height: 45%;
     background-repeat: no-repeat;
     background-size: 100% 100%;
     display: block;
-    left: 35%;
-    top: 25%;
+    z-index: 1;
+    top : 30%;
+    left : 32%;
 }
 
-@import url('https://fonts.googleapis.com/css?family=Roboto:300,400,400i,500');
-
-/* Toggle Styles */
-
-#viewport {
-  padding-left: 250px;
-  -webkit-transition: all 0.5s ease;
-  -moz-transition: all 0.5s ease;
-  -o-transition: all 0.5s ease;
-  transition: all 0.5s ease;
-}
-
-/* Sidebar Styles */
-
-#sidebar {
-  z-index: 1000;
-  position: fixed;
-  left: 250px;
-  width: 20%;
-  height: 100%;
-  margin-left: -250px;
-  overflow-y: auto;
+#sidebar-right {
+  width:20%;
+  right:0;
   background: #37474F;
-  -webkit-transition: all 0.5s ease;
-  -moz-transition: all 0.5s ease;
-  -o-transition: all 0.5s ease;
-  transition: all 0.5s ease;
+  color: #fff;
 }
 
-#sidebar header {
+#sidebar-left {
+  width: 20%;
+;  background: #37474F;
+  color: #fff;
+}
+
+header {
   color: #fff;
   display: block;
   background-color: #263238;
   line-height: 52px;
   text-align: center;
   text-decoration: none;
-}
-
-#sidebar .nav {
-  background: none;
-  border-bottom: 1px solid #455A64;
-  color: #CFD8DC;
-  font-size: 14px;
-  padding: 16px 24px;
-  margin-right: 16px;
 }

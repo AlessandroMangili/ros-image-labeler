@@ -1,17 +1,20 @@
 const express = require('express');
 const http = require('http');
+const { dirname } = require('path');
 const { Server } = require("socket.io");
 
 // JS file import
-const DB = require(__dirname + '/javascript/DBfunction');
 const BAG = require(__dirname + '/javascript/Bagfunction');
 
 const app = express();
+app.use(express.static(__dirname));
+
 const server = http.createServer(app);
 const io = new Server(server);
 const port = process.env.PORT || 8000;
 
-app.use(express.static(__dirname));
+const classes = [];
+const sub_classes = {};
 
 /*
 app.set('views', __dirname + '/views');
@@ -31,8 +34,7 @@ app.get('/draw', (req, res) => {
 // SOCKET.IO
 
 io.on('connection', (socket) => {
-    console.log("a user connected");
-
+    // Receive bag file
     socket.on('clicked', (msg, callback) => {
         BAG.extract_from_bagFile(msg)
         .then(() => {
@@ -44,8 +46,26 @@ io.on('connection', (socket) => {
         });
     });
 
-    socket.on('disconnect', () => {
-        console.log('user disconnected');
+    // Add new class
+    socket.on('add class', (msg) => {
+        classes.push(msg);
+        sub_classes[msg.name] = [];
+    });
+
+    // Add new sub_class
+    socket.on('add subClass', (msg) => {
+        //sub_classes[msg.name] = sub_classes[msg.name] || [];
+        sub_classes[msg.name].push(msg.id);
+    });
+
+    // Send all subClasses releated to a class
+    socket.on('get subClasses', (name, callback) => {
+        callback(sub_classes[name]);
+    });
+
+    // Send all classes
+    socket.on('get classes', (msg, callback) => {
+        callback(classes);
     });
 });
 
@@ -53,8 +73,4 @@ io.on('connection', (socket) => {
 
 server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
-    DB.connect()
-    .catch(() => {
-        process.exit();
-    });
 });

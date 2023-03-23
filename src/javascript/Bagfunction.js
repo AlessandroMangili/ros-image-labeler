@@ -3,6 +3,8 @@ const cv = require('opencv4nodejs');
 const fs = require('fs');
 const util = require('util');
 
+__dockerVolume = "/app/";
+
 module.exports = {
     extract_from_bagFile : async function (bagFile) {
         var topics = [];    // All topics in the bag file
@@ -11,7 +13,7 @@ module.exports = {
         var bag;
     
         try {
-            bag = await open(__dirname + `/bagFile/${bagFile}.bag`);
+            bag = await open(__dockerVolume + `/src/bagFile/${bagFile}.bag`);
         } catch (error) {
             console.error(error);
             return;
@@ -25,7 +27,7 @@ module.exports = {
         //console.log(util.inspect(bag, {depth: 5, colors: true, compact: true}));
     
         // Check if the bag folder to keep all images already exist
-        checkPath(__dirname + `/bagFile/${bagFile}`);
+        checkPath(__dockerVolume + `/src/bagFile/${bagFile}`);
     
         try {
             await bag.readMessages({}, (result) => {
@@ -43,11 +45,11 @@ module.exports = {
                     var formatted_topic = result.topic.split('/').join('_');
                     
                     // Check if for each topics there is already a folder where you can save the foto
-                    checkPath(__dirname + `/bagFile/${bagFile}/${formatted_topic}`);
+                    checkPath(__dockerVolume + `/src/bagFile/${bagFile}/${formatted_topic}`);
                     
                     // Check if the image already exist, do not overwrite and skip the encode to prevent time
                     try {
-                        fs.accessSync(__dirname + `/bagFile/${bagFile}/${formatted_topic}/img-${result.message.header.seq}.png`, fs.constants.F_OK);
+                        fs.accessSync(__dockerVolume + `/src/bagFile/${bagFile}/${formatted_topic}/img-${result.message.header.seq}.png`, fs.constants.F_OK);
                     } catch (access_error) {
                         try {
                             // CREATE IMAGE
@@ -63,7 +65,7 @@ module.exports = {
                                 matrix = new cv.Mat([matX]);
                                 //console.log(matrix);
                             }                        
-                            cv.imwrite(__dirname + `/bagFile/${bagFile}/${formatted_topic}/img-${result.message.header.seq}.png`, matrix);
+                            cv.imwrite(__dockerVolume + `/src/bagFile/${bagFile}/${formatted_topic}/img-${result.message.header.seq}.png`, matrix);
                         } catch(error) {
                             console.warn(`Error on create image ${formatted_topic}/img-${result.message.header.seq}.png with the following error`);
                             console.error(error);
