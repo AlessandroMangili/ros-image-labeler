@@ -15,6 +15,7 @@ const port = process.env.PORT || 8000;
 
 const classes = [];
 const sub_classes = {};
+const bounding_box = {};
 
 /*
 app.set('views', __dirname + '/views');
@@ -54,8 +55,29 @@ io.on('connection', (socket) => {
 
     // Add new sub_class
     socket.on('add subClass', (msg) => {
-        //sub_classes[msg.name] = sub_classes[msg.name] || [];
         sub_classes[msg.name].push(msg.id);
+    });
+
+    // Remove class
+    socket.on('remove class', (msg) => {
+        try {
+            let index = 0;
+            classes.forEach(e => {
+                if(JSON.stringify(msg) === JSON.stringify(e))
+                    throw index;
+                index++;
+            });
+            return;
+        } catch(e) {
+            classes.splice(e, 1);
+        }
+    });
+
+    // Remove sub_class
+    socket.on('remove subClass', (msg) => {
+        let index = sub_classes[msg.name].indexOf(Number(msg.id));
+        if (index > -1)
+            sub_classes[msg.name].splice(index, 1);
     });
 
     // Send all subClasses releated to a class
@@ -67,6 +89,36 @@ io.on('connection', (socket) => {
     socket.on('get classes', (msg, callback) => {
         callback(classes);
     });
+
+    // Add a specific bounding box
+    socket.on('add bounding_box', (msg) => {
+        bounding_box[msg.topic] = bounding_box[msg.topic] || {};
+        bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
+        bounding_box[msg.topic][msg.image].push(msg.rect);
+    });
+
+    // Remove a specific bounding box
+    socket.on('remove bounding_box', (msg) => {
+        bounding_box[msg.topic] = bounding_box[msg.topic] || {};
+        bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
+        try {
+            let index = 0;
+            bounding_box[msg.topic][msg.image].forEach(e => {
+                if (JSON.stringify(msg.rect) === JSON.stringify(e))
+                    throw index;
+                index++;
+            });
+        } catch(e) {
+            bounding_box[msg.topic][msg.image].splice(e, 1);
+        }
+    });
+
+    // Send all bounding box releted to that path
+    socket.on('get bounding_box', (msg, callback) => {
+        bounding_box[msg.topic] = bounding_box[msg.topic] || {};
+        bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
+        callback(bounding_box[msg.topic][msg.image]);
+    })
 });
 
 // CONNECTION

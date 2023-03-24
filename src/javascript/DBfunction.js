@@ -46,4 +46,3 @@ module.exports = {
         console.log(`${result.deletedCount} documente(s) was/were deleted`);
     }
 }
-
