@@ -201,3 +201,11 @@ function remove_local_bounding_box() {
         node.remove();
     });
 }
+
+// Resize container and canvas
+function fitStageIntoParentContainer() {
+    stage.width(div.clientWidth);
+    stage.height(div.clientHeight);
+}
+
+window.addEventListener('resize', fitStageIntoParentContainer);
