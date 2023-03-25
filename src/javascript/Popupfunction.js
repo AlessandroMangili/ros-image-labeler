@@ -20,7 +20,7 @@ $("#dialog").dialog({
                     
 
                     // Check if name or color exist already
-                    list.childNodes.forEach((node) => {
+                    list_class.childNodes.forEach((node) => {
                         if (node.title == colorpick || node.text == name) 
                             throw "The name or the color is already in use";
                     });
@@ -33,8 +33,7 @@ $("#dialog").dialog({
                     // Add class to left sidebar
                     create_class(msg);
                 
-                    // Save class to nodejs
-                    socket.emit('add class', msg);
+                    add_class(msg);
 
                     // Close the popup
                     $(this).dialog("close");

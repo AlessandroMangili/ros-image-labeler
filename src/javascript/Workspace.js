@@ -1,59 +1,51 @@
-var socket = io();
-
 var class_name;
 var image_counter = 0;
 
-var list = document.getElementById("classList");
+var list_class = document.getElementById("classList");
 var checkbox = document.getElementById("sub-labeling");
-var sub_list = document.getElementById("subList");
-var div = document.getElementById("container");
-var topic = document.getElementById("topics");
+var list_sub_class = document.getElementById("subList");
+var div_container = document.getElementById("container");
+var select_topic = document.getElementById("topics");
 
-// Change topic
-topic.addEventListener('change', (e) => {
+// Change select_topic
+select_topic.addEventListener('change', (e) => {
     image_counter = 0;
-    div.style.backgroundImage = `url(../bagFile/ros-1/${topic.value}/img-${image_counter++}.png)`;
+    div_container.style.backgroundImage = `url(../bagFile/ros-1/${select_topic.value}/img-${image_counter}.png)`;
     remove_local_bounding_box();
+    get_bounding_box({topic: select_topic.value, image: image_counter});
 });
 
 // Set the visibility of sub_classes list
 checkbox.addEventListener('change', (e) => {
     if (!e.currentTarget.checked) {
-        sub_list.style.visibility = "hidden";
-        let parent = document.getElementById("subList");
-        parent.childNodes.forEach(node => {
+        list_sub_class.style.visibility = "hidden";
+
+        list_sub_class.childNodes.forEach(node => {
             node.style.backgroundColor = "#fff";
         });
     } else {
-        sub_list.style.visibility = "";
+        list_sub_class.style.visibility = "";
     }
 });
 
+// Function onload
 $("#workspace").ready(e => {
-    div.style.backgroundImage = `url(../bagFile/ros-1/${topic.value}/img-${image_counter}.png)`;
-    get_bounding_box({topic: topic.value, image: image_counter});
+    div_container.style.backgroundImage = `url(../bagFile/ros-1/${select_topic.value}/img-${image_counter}.png)`;
+    get_bounding_box({topic: select_topic.value, image: image_counter});
+    get_classes();
 })
 
-// Function for skip image on workspace
+// Function for skip image
 $("#workspace").on("keydown", (e) => {
     if (e.keyCode == 80 && image_counter > 0) { // P
         remove_local_bounding_box();
-        div.style.backgroundImage = `url(../bagFile/ros-1/${topic.value}/img-${--image_counter}.png)`;
-        // FUTURA ESPANSIONE carica tutti i bounding box relativi all'immagine appena caricata
-        get_bounding_box({topic: topic.value, image: image_counter});
-    } else if (e.keyCode == 78) { //N
+        div_container.style.backgroundImage = `url(../bagFile/ros-1/${select_topic.value}/img-${--image_counter}.png)`;
+        get_bounding_box({topic: select_topic.value, image: image_counter});
+    } else if (e.keyCode == 78) { // N
         remove_local_bounding_box();
-        div.style.backgroundImage = `url(../bagFile/ros-1/${topic.value}/img-${++image_counter}.png)`;
-        // FUTURA ESPANSIONE carica tutti i bounding box relativi all'immagine appena caricata
-        get_bounding_box({topic: topic.value, image: image_counter});
+        div_container.style.backgroundImage = `url(../bagFile/ros-1/${select_topic.value}/img-${++image_counter}.png)`;
+        get_bounding_box({topic: select_topic.value, image: image_counter});
     }
-});
-
-// Fill the left sidebar with the classes already created
-socket.emit('get classes', "", (res) => {
-    res.forEach(node => {
-        create_class(node);
-    });
 });
 
 // Function for create nodes and remove bounding box
@@ -65,70 +57,54 @@ function create_class(msg) {
     node.style.color = msg.color;
 
     node.addEventListener('click', (e) => {
+        // Deselect
         if (e.target.style.backgroundColor == "red") {
             e.target.style.backgroundColor = "#fff";
             return;
         }
 
-        socket.emit('get subClasses', msg.name, (res) => {
-            // Remove all sub_classes to right sidebar
-            while(sub_list.hasChildNodes()) {
-                    sub_list.removeChild(sub_list.lastElementChild);
-            }
-
-            // Add sub_classes to right sidebar
-            res.forEach(id => {
-                create_sub_classes(id);
-            });
-        });
-        // Save name of the class selected
-        class_name = msg.name;
-        
-        set_selection("classList", e);
+        get_sub_classes(msg.name);
+        class_name = msg.name; // Save the current name of the selected class
+        set_selection(list_class, e);
 
         // Set visibility for sub_classes list
         if (!checkbox.checked) 
-            sub_list.style.visibility = "hidden";
+            list_sub_class.style.visibility = "hidden";
     });
 
     node.addEventListener('dblclick', (e) => {
-        socket.emit('remove class', {name : e.target.innerHTML, color : e.target.title});
-
-        list.removeChild(e.target);
-        
-        // FUTURE ESPANSIONI: CANCELLARE ANCHE TUTTI I BOUNDING BOX DISEGNATI SU TUTTE LE IMMAGINI
+        remove_class({name : e.target.innerHTML, color : e.target.title});
+        list_class.removeChild(e.target);
     });
 
-    list.appendChild(node);
+    list_class.appendChild(node);
 }
 
-function create_sub_classes(id) {
+function create_sub_class(id) {
     var node = document.createElement("a");
     node.innerHTML = id;
     node.className = "list-group-item list-group-item-action";
 
     node.addEventListener('click', (e) => {
+        // Deselect
         if (e.target.style.backgroundColor == "red") {
             e.target.style.backgroundColor = "#fff";
-        } else
-            set_selection("subList", e);
+            return;
+        }
+        set_selection(list_sub_class, e);
     });
 
     node.addEventListener('dblclick', (e) => {
-        socket.emit('remove subClass', {name : class_name, id : e.target.innerHTML});
-
-        sub_list.removeChild(e.target);
-        
-        // FUTURE ESPANSIONI: CANCELLARE ANCHE TUTTI I BOUNDING BOX DISEGNATI SU TUTTE LE IMMAGINI
+        remove_sub_class({name : class_name, id : e.target.innerHTML});
+        list_sub_class.removeChild(e.target);
     });
 
-    sub_list.appendChild(node);
+    list_sub_class.appendChild(node);
 }
 
-// Change background color to select the item
-function set_selection(div_id, dest) {
-    let parent = document.getElementById(div_id);
-    parent.childNodes.forEach(node => {
+// Change background color to selected item
+function set_selection(div, dest) {
+    div.childNodes.forEach(node => {
         node.style.backgroundColor = "#fff";
     });
     dest.target.style.backgroundColor = "red";

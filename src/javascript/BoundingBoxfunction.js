@@ -1,8 +1,8 @@
 // KONVA - Container for image annotate
 var stage = new Konva.Stage({
     container: 'container',
-    width: div.clientWidth,
-    height: div.clientHeight,
+    width: div_container.clientWidth,
+    height: div_container.clientHeight,
 });
 
 // Create layer
@@ -88,7 +88,7 @@ stage.on('mouseup touchend', (e) => {
     // Check if the width and height of bounding box is >= 20 then draw it
     if (wantDraw && box.width >= 20 && box.height >= 20) {
         try {
-            list.childNodes.forEach(node => {
+            list_class.childNodes.forEach(node => {
             if (node.style.backgroundColor == "red")
                 throw node;
             });
@@ -107,7 +107,7 @@ stage.on('mouseup touchend', (e) => {
                 draggable: true,
             });
             layer.add(rect);
-            socket.emit('add bounding_box', {topic: topic.value, image: image_counter, rect: rect.toObject()});
+            add_bounding_box({topic: select_topic.value, image: image_counter, rect: rect.toObject()});
             wantDraw = false;
         }
 
@@ -117,17 +117,17 @@ stage.on('mouseup touchend', (e) => {
         
         try {
             // If a sub_class is already selected, so don't create a new sub_class
-            sub_list.childNodes.forEach(node => {
+            list_sub_class.childNodes.forEach(node => {
                 if (node.style.backgroundColor == "red")
                     throw node;
             });
             
             msg = {
                 name : class_name,
-                id : sub_list.hasChildNodes() ? parseInt(sub_list.lastElementChild.innerHTML) + 1 : 0
+                id : list_sub_class.hasChildNodes() ? parseInt(list_sub_class.lastElementChild.innerHTML) + 1 : 0
             };
-            create_sub_classes(msg.id, sub_list);
-            socket.emit('add subClass', msg);
+            create_sub_class(msg.id, list_sub_class);
+            add_sub_class(msg);
         } catch (e) {
             console.log(e.innerHTML);
         }                 
@@ -177,19 +177,11 @@ container.addEventListener('keydown', (e) => {
     if (e.keyCode == 46) {
         tr.nodes().forEach(node => {
             node.remove();
-            socket.emit('remove bounding_box', {topic: topic.value, image: image_counter, rect: node.toObject()});
+            remove_bounding_box({topic: topic.value, image: image_counter, rect: node.toObject()})
         });
         tr.nodes([]);
     }
 });
-
-function get_bounding_box(msg) {
-    socket.emit("get bounding_box", msg, (res) => {
-        res.forEach(node => {
-            layer.add(new Konva.Rect(node));
-        });
-    });
-}
 
 // Remove all bounding box from container
 function remove_local_bounding_box() {
@@ -202,10 +194,11 @@ function remove_local_bounding_box() {
     });
 }
 
-// Resize container and canvas
-function fitStageIntoParentContainer() {
-    stage.width(div.clientWidth);
-    stage.height(div.clientHeight);
-}
+// For fixing resizing canvas
+window.addEventListener('resize', fitStageIntoContainer);
 
-window.addEventListener('resize', fitStageIntoParentContainer);
+// Resize container and canvas
+function fitStageIntoContainer() {
+    stage.width(div_container.clientWidth);
+    stage.height(div_container.clientHeight);
+}

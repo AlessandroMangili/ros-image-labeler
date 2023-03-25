@@ -54,8 +54,32 @@ io.on('connection', (socket) => {
     });
 
     // Add new sub_class
-    socket.on('add subClass', (msg) => {
+    socket.on('add sub_class', (msg) => {
         sub_classes[msg.name].push(msg.id);
+    });
+
+    // Add a specific bounding box
+    socket.on('add bounding_box', (msg) => {
+        bounding_box[msg.topic] = bounding_box[msg.topic] || {};
+        bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
+        bounding_box[msg.topic][msg.image].push(msg.rect);
+    });
+
+    // Send all classes
+    socket.on('get classes', (msg, callback) => {
+        callback(classes);
+    });
+
+    // Send all subClasses releated to a class
+    socket.on('get sub_classes', (name, callback) => {
+        callback(sub_classes[name]);
+    });
+
+    // Send all bounding box releted to that path
+    socket.on('get bounding_box', (msg, callback) => {
+        bounding_box[msg.topic] = bounding_box[msg.topic] || {};
+        bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
+        callback(bounding_box[msg.topic][msg.image]);
     });
 
     // Remove class
@@ -74,28 +98,11 @@ io.on('connection', (socket) => {
     });
 
     // Remove sub_class
-    socket.on('remove subClass', (msg) => {
+    socket.on('remove sub_class', (msg) => {
         let index = sub_classes[msg.name].indexOf(Number(msg.id));
         if (index > -1)
             sub_classes[msg.name].splice(index, 1);
-    });
-
-    // Send all subClasses releated to a class
-    socket.on('get subClasses', (name, callback) => {
-        callback(sub_classes[name]);
-    });
-
-    // Send all classes
-    socket.on('get classes', (msg, callback) => {
-        callback(classes);
-    });
-
-    // Add a specific bounding box
-    socket.on('add bounding_box', (msg) => {
-        bounding_box[msg.topic] = bounding_box[msg.topic] || {};
-        bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
-        bounding_box[msg.topic][msg.image].push(msg.rect);
-    });
+    });    
 
     // Remove a specific bounding box
     socket.on('remove bounding_box', (msg) => {
@@ -112,13 +119,6 @@ io.on('connection', (socket) => {
             bounding_box[msg.topic][msg.image].splice(e, 1);
         }
     });
-
-    // Send all bounding box releted to that path
-    socket.on('get bounding_box', (msg, callback) => {
-        bounding_box[msg.topic] = bounding_box[msg.topic] || {};
-        bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
-        callback(bounding_box[msg.topic][msg.image]);
-    })
 });
 
 // CONNECTION
