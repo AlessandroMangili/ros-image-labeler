@@ -48,7 +48,7 @@ $("#workspace").on("keydown", (e) => {
     }
 });
 
-// Function for create nodes and remove bounding box
+// Function for create classes
 function create_class(msg) {
     var node = document.createElement("a");
     node.innerHTML = msg.name;
@@ -63,8 +63,9 @@ function create_class(msg) {
             return;
         }
 
-        get_sub_classes(msg.name);
         class_name = msg.name; // Save the current name of the selected class
+
+        get_sub_classes(msg.name);
         set_selection(list_class, e);
 
         // Set visibility for sub_classes list
@@ -75,11 +76,13 @@ function create_class(msg) {
     node.addEventListener('dblclick', (e) => {
         remove_class({name : e.target.innerHTML, color : e.target.title});
         list_class.removeChild(e.target);
+        remove_local_bounding_box();
     });
 
     list_class.appendChild(node);
 }
 
+// Function for create sub_classes
 function create_sub_class(id) {
     var node = document.createElement("a");
     node.innerHTML = id;

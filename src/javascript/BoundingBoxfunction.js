@@ -72,7 +72,9 @@ stage.on('mouseup touchend', (e) => {
         selectionRectangle.visible(false);
     });
 
-    var shapes = stage.find('.rect');
+    var shapes = stage.find(node => {
+        return node._id > 14;
+    });
     var box = selectionRectangle.getClientRect();
     if (box.width != 0 && box.height != 0) {
         var selected = shapes.filter((shape) =>
@@ -101,7 +103,7 @@ stage.on('mouseup touchend', (e) => {
                 y: selectionRectangle.attrs.y,
                 width: selectionRectangle.attrs.width,
                 height: selectionRectangle.attrs.height,
-                name: "rect",
+                name: class_name,
                 stroke: e.title,
                 strokeWidth: 3,
                 draggable: true,
@@ -146,10 +148,6 @@ stage.on('click', (e) => {
         return;
     }
 
-    // do nothing if clicked NOT on our rectangles
-    if (!e.target.hasName('rect'))
-        return;
-
     // do we pressed shift or ctrl?
     const metaPressed = e.evt.shiftKey || e.evt.ctrlKey || e.evt.metaKey;
     const isSelected = tr.nodes().indexOf(e.target) >= 0;
@@ -177,7 +175,7 @@ container.addEventListener('keydown', (e) => {
     if (e.keyCode == 46) {
         tr.nodes().forEach(node => {
             node.remove();
-            remove_bounding_box({topic: topic.value, image: image_counter, rect: node.toObject()})
+            remove_bounding_box({topic: select_topic.value, image: image_counter, rect: node.toObject()})
         });
         tr.nodes([]);
     }
@@ -194,7 +192,7 @@ function remove_local_bounding_box() {
     });
 }
 
-// For fixing resizing canvas
+// Event for resizing canvas
 window.addEventListener('resize', fitStageIntoContainer);
 
 // Resize container and canvas

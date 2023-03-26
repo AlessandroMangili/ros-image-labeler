@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { dirname } = require('path');
 const { Server } = require("socket.io");
+const util = require('util');
 
 // JS file import
 const BAG = require(__dirname + '/javascript/Bagfunction');
@@ -82,7 +83,7 @@ io.on('connection', (socket) => {
         callback(bounding_box[msg.topic][msg.image]);
     });
 
-    // Remove class
+    // Remove class and all bounding box
     socket.on('remove class', (msg) => {
         try {
             let index = 0;
@@ -94,6 +95,7 @@ io.on('connection', (socket) => {
             return;
         } catch(e) {
             classes.splice(e, 1);
+            remove_bounding_box_by_class(msg.name);            
         }
     });
 
@@ -120,6 +122,18 @@ io.on('connection', (socket) => {
         }
     });
 });
+
+// Remove all bounding box for a class
+function remove_bounding_box_by_class(class_name) {
+    Object.keys(bounding_box).forEach((topic, _) => {
+        Object.keys(bounding_box[topic]).forEach(image => {
+            bounding_box[topic][image].forEach((rect, index) => {
+                if (rect.attrs.name === class_name)
+                    delete bounding_box[topic][image][index];
+            });
+        });
+    });
+}
 
 // CONNECTION
 
