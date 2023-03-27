@@ -56,7 +56,7 @@ io.on('connection', (socket) => {
 
     // Add new sub_class
     socket.on('add sub_class', (msg) => {
-        sub_classes[msg.name].push(msg.id);
+        sub_classes[msg.name].push(msg.sub_name);
     });
 
     // Add a specific bounding box
@@ -99,13 +99,13 @@ io.on('connection', (socket) => {
             // Removing all sub_classes
             sub_classes[msg.name].splice(0, sub_classes[msg.name].length);
 
-            remove_bounding_box_by_class(msg.name);   
+            remove_bounding_box_by_class(msg.name);
         }
     });
 
     // Remove sub_class
     socket.on('remove sub_class', (msg) => {
-        let index = sub_classes[msg.name].indexOf(Number(msg.id));
+        let index = sub_classes[msg.name].indexOf(msg.sub_name);
         if (index > -1)
             sub_classes[msg.name].splice(index, 1);
     });    

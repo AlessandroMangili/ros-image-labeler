@@ -1,20 +1,25 @@
 var class_name = "";    // Save the current name of the selected class
-var sub_class_id = "";  // Save the current id of the selected sub_class
+var sub_class_name = "";  // Save the current id of the selected sub_class
 var color_pick = "";    // Save the current color of the selected class
 var image_counter = 0;  // Current index of the image inside the canvas
 
-var list_class = document.getElementById("classList");
-var checkbox = document.getElementById("sub-labeling");
-var list_sub_class = document.getElementById("subList");
+var list_class = document.getElementById("class_list");
+var checkbox = document.getElementById("sub_classes");
+var list_sub_class = document.getElementById("sub_class_list");
 var div_container = document.getElementById("container");
 var select_topic = document.getElementById("topics");
 
-// Change select_topic
+// Show popup onclick button 
+document.getElementById("add_class").addEventListener('click', (e) => {
+    $('#class_dialog').dialog('open');
+});
+
+// Change target topic
 select_topic.addEventListener('change', (e) => {
     image_counter = 0;
-    div_container.style.backgroundImage = `url(../bagFile/ros-1/${select_topic.value}/img-${image_counter}.png)`;
-    remove_local_bounding_box();
-    get_bounding_box({topic: select_topic.value, image: image_counter});
+    div_container.style.backgroundImage = `url(../bagFile/ros-1/${e.currentTarget.value}/img-${image_counter}.png)`;
+
+    get_bounding_box({topic: e.currentTarget.value, image: image_counter});
 });
 
 // Set the visibility of sub_classes list
@@ -23,28 +28,27 @@ checkbox.addEventListener('change', (e) => {
         list_sub_class.style.visibility = "hidden";
 
         list_sub_class.childNodes.forEach(node => {
-            node.style.backgroundColor = "#fff";
+            node.style.borderColor = "white";
         });
+        sub_class_name = "";
     } else {
         list_sub_class.style.visibility = "";
     }
 });
 
-// Function onload
-$("#workspace").ready(e => {
+// Function onload to load image and get classes and bounding box saved
+$("#workspace").ready((e) => {
     div_container.style.backgroundImage = `url(../bagFile/ros-1/${select_topic.value}/img-${image_counter}.png)`;
     get_bounding_box({topic: select_topic.value, image: image_counter});
     get_classes();
 })
 
-// Function for skip image
+// Function for change image inside canvas
 $("#workspace").on("keydown", (e) => {
     if (e.keyCode == 80 && image_counter > 0) { // P
-        remove_local_bounding_box();
         div_container.style.backgroundImage = `url(../bagFile/ros-1/${select_topic.value}/img-${--image_counter}.png)`;
         get_bounding_box({topic: select_topic.value, image: image_counter});
     } else if (e.keyCode == 78) { // N
-        remove_local_bounding_box();
         div_container.style.backgroundImage = `url(../bagFile/ros-1/${select_topic.value}/img-${++image_counter}.png)`;
         get_bounding_box({topic: select_topic.value, image: image_counter});
     }
@@ -62,7 +66,7 @@ function create_class(msg) {
     node.style.borderColor = "white";
 
     node.addEventListener('click', (e) => {
-        // Deselect
+        // Deselect if already selected
         if (e.target.innerHTML == class_name) {
             e.target.style.borderColor = "white";
             list_sub_class.style.visibility = "hidden";
@@ -71,14 +75,14 @@ function create_class(msg) {
             return;
         }
 
-        sub_class_id = "";
         class_name = msg.name;  
         color_pick = msg.color;
+        sub_class_name = "";
 
         get_sub_classes(msg.name);
         set_selection(list_class, e.target);
 
-        // Set visibility for sub_classes list
+        // Set visibility for sub-classes list
         if (!checkbox.checked) 
             list_sub_class.style.visibility = "hidden";
         else
@@ -86,10 +90,13 @@ function create_class(msg) {
     });
 
     node.addEventListener('dblclick', (e) => {
-        remove_class({name : e.target.innerHTML, color : e.target.title});
+        remove_class({name : msg.name, color : msg.color});
         list_class.removeChild(e.target);
-        get_sub_classes(e.target.innerHTML);
-        remove_local_bounding_box();
+
+        get_sub_classes(msg.name);
+
+        get_bounding_box({topic: select_topic.value, image: image_counter});
+
         class_name = "";
     });
 
@@ -97,29 +104,30 @@ function create_class(msg) {
 }
 
 // Function for create sub_classes
-function create_sub_class(id) {
+function create_sub_class(sub_name) {
     var node = document.createElement("a");
-    node.innerHTML = id;
+    node.innerHTML = sub_name;
     node.className = "list-group-item list-group-item-action";
     node.style.borderStyle = "solid";
     node.style.borderWidth = "medium";
     node.style.borderColor = "white";
 
     node.addEventListener('click', (e) => {
-        // Deselect
-        if (e.target.innerHTML == sub_class_id) {
+        // Deselect if already selected
+        if (e.target.innerHTML == sub_class_name) {
             e.target.style.borderColor = "white";
-            sub_class_id = "";
+            sub_class_name = "";
             return;
         }
-        sub_class_id = id;
+
+        sub_class_name = sub_name;
         set_selection(list_sub_class, e.target);
     });
 
     node.addEventListener('dblclick', (e) => {
-        remove_sub_class({name : class_name, id : e.target.innerHTML});
+        remove_sub_class({name : class_name, sub_name : sub_name});
         list_sub_class.removeChild(e.target);
-        sub_class_id = "";
+        sub_class_name = "";
     });
 
     list_sub_class.appendChild(node);
@@ -131,4 +139,10 @@ function set_selection(div, dest) {
         node.style.borderColor = "white";
     });
     dest.style.borderColor = "red";
+}
+
+// For clear sub-classes sidebar
+function clear_sub_classes_sidebar() {
+    while(list_sub_class.hasChildNodes())
+        list_sub_class.removeChild(list_sub_class.lastElementChild);
 }

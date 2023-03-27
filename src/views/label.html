@@ -23,34 +23,44 @@
         <!-- Left sidebar -->
         <div class="w3-sidebar w3-bar-block w3-card" id="sidebar-left">
             <header style = "padding-bottom: 2%;">
-                <button class="btn btn-primary" id="addClass" type="submit">Add class</button>
+                <button class="btn btn-primary" id="add_class" type="submit">Add class</button>
             </header>
-            <div class="list-group" id="classList"></div>
+            <div class="list-group" id="class_list"></div>
         </div>
 
         <!-- Right sidebar -->
         <div class="w3-sidebar w3-bar-block w3-card" id="sidebar-right">
             <header style = "padding-bottom: 2%;">
                 <label for="sub-labelings"> Check if you want to sub-labeling </label>
-                <input type="checkbox" id="sub-labeling">
+                <input type="checkbox" id="sub_classes">
             </header>
-            <div class="list-group" id="subList"></div>
+            <div class="list-group" id="sub_class_list"></div>
         </div>
 
-        <!-- Popup -->
+        <!-- Class popup -->
         <form>
-            <div id="dialog" title="Set the class">
+            <div id="class_dialog" title="Set the class">
                 <div style="align-items: center;">
                     <label>Set the name of the class: </label>
-                    <input type="text" id="className" value="">
+                    <input type="text" id="class_name" value="">
                 </div>
                 <div style="text-align:center;">
                     <label>Set the color of the class: </label>
-                    <input type="color" id="classColor">
+                    <input type="color" id="class_color">
                 </div>
             </div>
         </form>
-        
+
+        <!-- Sub_class popup -->
+        <form>
+            <div id="sub_class_dialog" title="Set the subclass">
+                <div style="align-items: center;">
+                    <label>Set the name of the subclass: </label>
+                    <input type="text" id="sub_class_name" value="">
+                </div>
+            </div>
+        </form>
+
         <!-- Container for canvas -->
         <div id="container"></div>
 

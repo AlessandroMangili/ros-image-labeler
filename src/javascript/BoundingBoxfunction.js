@@ -1,4 +1,5 @@
-// KONVA - Container for image annotate
+// KONVA - BOUNDING BOX section
+
 var stage = new Konva.Stage({
     container: 'container',
     width: div_container.clientWidth,
@@ -112,15 +113,11 @@ stage.on('mouseup touchend', (e) => {
             return;
         
         // If a sub_class is already selected, so don't create a new sub_class
-        if (sub_class_id == "") {
-            msg = {
-                name : class_name,
-                id : list_sub_class.hasChildNodes() ? parseInt(list_sub_class.lastElementChild.innerHTML) + 1 : 0
-            };
-            create_sub_class(msg.id, list_sub_class);
-            add_sub_class(msg);
+        if (sub_class_name == "") {
+            // Popup for asking subclass name
+            $('#sub_class_dialog').dialog('open');
         } else {
-            console.log(sub_class_id);
+            console.log(sub_class_name);
         }            
     }
 });
