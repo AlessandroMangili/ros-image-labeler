@@ -53,3 +53,11 @@ function remove_sub_class(msg) {
 function remove_bounding_box(msg) {
     socket.emit('remove bounding_box', msg);
 }
+
+// INDEX
+
+function extract_bag(filename) {
+    socket.emit('clicked', filename, (res) => {
+        console.log(res);
+    });
+}

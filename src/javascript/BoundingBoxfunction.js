@@ -89,50 +89,39 @@ stage.on('mouseup touchend', (e) => {
     // Check if the user pressed ctrl key for draw the bounding box
     // Check if the width and height of bounding box is >= 20 then draw it
     if (wantDraw && box.width >= 20 && box.height >= 20) {
-        try {
-            list_class.childNodes.forEach(node => {
-            if (node.style.backgroundColor == "red")
-                throw node;
-            });
-            
+        if (class_name == "") {
             alert("You need first to create or select a class");
             return;
-        } catch (e) {
-            let rect = new Konva.Rect({
-                x: selectionRectangle.attrs.x,
-                y: selectionRectangle.attrs.y,
-                width: selectionRectangle.attrs.width,
-                height: selectionRectangle.attrs.height,
-                name: class_name,
-                stroke: e.title,
-                strokeWidth: 3,
-                draggable: true,
-            });
-            layer.add(rect);
-            add_bounding_box({topic: select_topic.value, image: image_counter, rect: rect.toObject()});
-            wantDraw = false;
         }
+        let rect = new Konva.Rect({
+            x: selectionRectangle.attrs.x,
+            y: selectionRectangle.attrs.y,
+            width: selectionRectangle.attrs.width,
+            height: selectionRectangle.attrs.height,
+            name: class_name,
+            stroke: color_pick,
+            strokeWidth: 3,
+            draggable: true,
+        });
+        layer.add(rect);
+        add_bounding_box({topic: select_topic.value, image: image_counter, rect: rect.toObject()});
+        wantDraw = false;
 
         // If checkbox is not flagged, just return
         if (!checkbox.checked)
             return;
         
-        try {
-            // If a sub_class is already selected, so don't create a new sub_class
-            list_sub_class.childNodes.forEach(node => {
-                if (node.style.backgroundColor == "red")
-                    throw node;
-            });
-            
+        // If a sub_class is already selected, so don't create a new sub_class
+        if (sub_class_id == "") {
             msg = {
                 name : class_name,
                 id : list_sub_class.hasChildNodes() ? parseInt(list_sub_class.lastElementChild.innerHTML) + 1 : 0
             };
             create_sub_class(msg.id, list_sub_class);
             add_sub_class(msg);
-        } catch (e) {
-            console.log(e.innerHTML);
-        }                 
+        } else {
+            console.log(sub_class_id);
+        }            
     }
 });
 

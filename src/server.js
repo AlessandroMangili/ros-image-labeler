@@ -95,7 +95,11 @@ io.on('connection', (socket) => {
             return;
         } catch(e) {
             classes.splice(e, 1);
-            remove_bounding_box_by_class(msg.name);            
+            
+            // Removing all sub_classes
+            sub_classes[msg.name].splice(0, sub_classes[msg.name].length);
+
+            remove_bounding_box_by_class(msg.name);   
         }
     });
 

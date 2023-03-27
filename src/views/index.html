@@ -14,24 +14,19 @@
 
         <a href="draw">Modifica set</a>
 
-        <script>
-            var socket = io();
-            
-            var form = document.getElementById('form');
+        <script type="text/javascript" src="../javascript/Socketfunction.js"></script>
+        <script>            
             var select = document.getElementById('bagFile');
-            var input = document.getElementById('submit');
 
-            input.addEventListener('click', function(e) {
+            document.getElementById('submit').addEventListener('click', e => {
                 e.preventDefault();
+
                 if (select.value != "") {
                     let split = select.value.split("\\");
                     let filename = split[split.length - 1].split(".")[0];
                     let extension = split[split.length - 1].split(".")[1];
-                    if (extension == "bag") {
-                        socket.emit('clicked', filename, (res) => {
-                            console.log(res);
-                        });
-                    }
+                    if (extension == "bag")
+                        extract_bag(filename);
                 }
             });
         </script>

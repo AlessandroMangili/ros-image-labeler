@@ -20,6 +20,7 @@
         <link type="text/css" rel="stylesheet" href="/stylesheets/rectangle.css">
     </head>
     <body id="workspace">
+        <!-- Left sidebar -->
         <div class="w3-sidebar w3-bar-block w3-card" id="sidebar-left">
             <header style = "padding-bottom: 2%;">
                 <button class="btn btn-primary" id="addClass" type="submit">Add class</button>
@@ -27,6 +28,7 @@
             <div class="list-group" id="classList"></div>
         </div>
 
+        <!-- Right sidebar -->
         <div class="w3-sidebar w3-bar-block w3-card" id="sidebar-right">
             <header style = "padding-bottom: 2%;">
                 <label for="sub-labelings"> Check if you want to sub-labeling </label>
@@ -35,6 +37,7 @@
             <div class="list-group" id="subList"></div>
         </div>
 
+        <!-- Popup -->
         <form>
             <div id="dialog" title="Set the class">
                 <div style="align-items: center;">
@@ -48,7 +51,10 @@
             </div>
         </form>
         
+        <!-- Container for canvas -->
         <div id="container"></div>
+
+        <!-- Selection for topics -->
         <div>
             <div style="text-align:center;">
                 <label>Select the topic: </label>
@@ -58,6 +64,7 @@
                 </select>
             </div>
         </div>
+        
         <script type="text/javascript" src="../javascript/Socketfunction.js"></script>
         <script type="text/javascript" src="../javascript/Workspace.js"></script>
         <script type="text/javascript" src="../javascript/BoundingBoxfunction.js"></script>
