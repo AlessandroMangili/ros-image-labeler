@@ -1,11 +1,12 @@
 const express = require('express');
 const http = require('http');
-const { dirname } = require('path');
 const { Server } = require("socket.io");
-const util = require('util');
+
+const cv = require('opencv4nodejs');
 
 // JS file import
-const BAG = require(__dirname + '/javascript/Bagfunction');
+const IMAGE = require(__dirname + '/javascript/Imagefunction');
+const MONGO = require(__dirname + '/javascript/DBfunction')
 
 const app = express();
 app.use(express.static(__dirname));
@@ -17,6 +18,8 @@ const port = process.env.PORT || 8000;
 const classes = [];
 const sub_classes = {};
 const bounding_box = {};
+
+var client;
 
 /*
 app.set('views', __dirname + '/views');
@@ -37,16 +40,39 @@ app.get('/draw', (req, res) => {
 
 io.on('connection', (socket) => {
     // Receive bag file
-    socket.on('clicked', (msg, callback) => {
-        BAG.extract_from_bagFile(msg)
-        .then(() => {
-            callback("Succesfull");
-        })
-        .catch((error) => {
-            console.error(error);
-            callback("Error: " + error);
-        });
+    socket.on('save_bag', (msg, callback) => {
+
+        // AVVIA L'ISTANZA MONGO CON NOME BAG PRESENTE IN MSG E RICAVARSI IL PATH DALLA CARTELLA CREATA PER CONENTENRE TUTTE LE ISTANZE
+
     });
+
+    // Return all valid topics (images) of the current bag file
+    socket.on('get topics', async (_, callback) => {
+        let topics = await client.listCollections().toArray();
+        let clone = topics.slice();
+
+        topics.forEach(topic => {
+            if (topic.name.indexOf("image_raw") < 0)
+                clone.splice(clone.indexOf(topic), 1);
+        });
+        callback(clone);
+    });
+
+    // Send the first sequence number of that topic
+    socket.on('get first_seq', async (msg, callback) => {
+        callback(await MONGO.get_first_seq(client, msg));
+    });
+
+    // Send the buffer that encode image
+    socket.on('get image', async(msg, callback) => {
+        try {
+            let document = await client.collection(msg.topic).findOne({"header.seq" : msg.seq});
+            callback(IMAGE.create_image_buffer(document));
+        } catch (e) {
+            console.log(e);
+            callback(`Error on encoding image`);
+        }
+    })
 
     // Add new class
     socket.on('add class', (msg) => {
@@ -63,7 +89,18 @@ io.on('connection', (socket) => {
     socket.on('add bounding_box', (msg) => {
         bounding_box[msg.topic] = bounding_box[msg.topic] || {};
         bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
-        bounding_box[msg.topic][msg.image].push(msg.rect);
+
+        try {
+            let index = 0;
+            bounding_box[msg.topic][msg.image].forEach(rect => {
+                if (rect.attrs.id == msg.rect.attrs.id)
+                    throw index;
+                index++;
+            });
+            bounding_box[msg.topic][msg.image].push(msg.rect);
+        } catch (e) {
+            bounding_box[msg.topic][msg.image][e] = msg.rect;
+        }
     });
 
     // Send all classes
@@ -93,7 +130,7 @@ io.on('connection', (socket) => {
                 index++;
             });
             return;
-        } catch(e) {
+        } catch (e) {
             classes.splice(e, 1);
             
             // Removing all sub_classes
@@ -121,13 +158,13 @@ io.on('connection', (socket) => {
                     throw index;
                 index++;
             });
-        } catch(e) {
+        } catch (e) {
             bounding_box[msg.topic][msg.image].splice(e, 1);
         }
     });
 });
 
-// Remove all bounding box for a class
+// Remove all bounding box of a class
 function remove_bounding_box_by_class(class_name) {
     Object.keys(bounding_box).forEach((topic, _) => {
         Object.keys(bounding_box[topic]).forEach(image => {
@@ -141,6 +178,16 @@ function remove_bounding_box_by_class(class_name) {
 
 // CONNECTION
 
-server.listen(port, () => {
+server.listen(port, async () => {
     console.log(`Server running on http://localhost:${port}`);
+
+    // Creare cartella per contenere tutte le istanze di mongo
+
+    try {
+        client = await MONGO.connect();
+    } catch (e) {
+        console.log(`Error: ${e}`);
+        process.exit(100);
+    }
 });
+

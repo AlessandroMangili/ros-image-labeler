@@ -31,7 +31,7 @@
         <!-- Right sidebar -->
         <div class="w3-sidebar w3-bar-block w3-card" id="sidebar-right">
             <header style = "padding-bottom: 2%;">
-                <label for="sub-labelings"> Check if you want to sub-labeling </label>
+                <label for="sub-labelings"> Sub-labeling </label>
                 <input type="checkbox" id="sub_classes">
             </header>
             <div class="list-group" id="sub_class_list"></div>
@@ -51,7 +51,7 @@
             </div>
         </form>
 
-        <!-- Sub_class popup -->
+        <!-- Sub-class popup -->
         <form>
             <div id="sub_class_dialog" title="Set the subclass">
                 <div style="align-items: center;">
@@ -68,10 +68,9 @@
         <div>
             <div style="text-align:center;">
                 <label>Select the topic: </label>
-                <select id="topics">
-                    <option value="camera_down_rgb_image_raw">RGB DOWN</option>
-                    <option value="camera_up_rgb_image_raw">RGB UP</option>
-                </select>
+                <select id="topics"></select><br>
+                <label for="sub-labelings"> Keep bounding box </label>
+                <input type="checkbox" id="keep_bounding">
             </div>
         </div>
         

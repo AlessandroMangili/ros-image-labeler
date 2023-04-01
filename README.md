@@ -6,16 +6,7 @@ Per ogni file bag viene creata un'istanza docker di ([MongoDB](https://www.mongo
 
 ## Installazione
 
-Prima di iniziare, bisogna installare [Docker](https://www.docker.com/products/docker-desktop/) sulla propria macchina. Una volta installato, è sufficiente avviare il servizio docker se lo si sta utilizzando da riga di comando, e costruire l'immagine docker relativa all'app; per fare questo è sufficiente:
-```
-$ cd WebToolLabelImage
-$ docker build -t nome_immagine .
-```
-una volta finito di costruire l'immagine, avviamo un container tramite il comando
-```
-$ docker run -v ./:/app -p 8000:8000 nome_immagine
-```
-e ora siamo proonti ad utilizzare la web app.
+
 
 ---
 

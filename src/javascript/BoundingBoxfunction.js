@@ -63,6 +63,13 @@ stage.on('mousemove touchmove', (e) => {
 });
 
 stage.on('mouseup touchend', (e) => {
+    // Chechk if the target is a bounding box, then save the changes
+    if (e.target._id > 14) {
+        console.log(tr.nodes());
+        // MANCA DA SPOSTARE UNA SELEZIONE DI PIÙ BOUNDING BOX
+        add_bounding_box({topic: select_topic.value, image: image_sequence, rect: e.target.toObject()});
+    }
+
     // do nothing if we didn't start selection
     if (!selectionRectangle.visible())
         return;
@@ -105,7 +112,14 @@ stage.on('mouseup touchend', (e) => {
             draggable: true,
         });
         layer.add(rect);
-        add_bounding_box({topic: select_topic.value, image: image_counter, rect: rect.toObject()});
+        // Add id to each individual rect
+        rect.id(rect._id);
+
+        rect.on('transformend', () => {
+            add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()})
+        });
+
+        add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()});
         wantDraw = false;
 
         // If checkbox is not flagged, just return
@@ -161,7 +175,7 @@ container.addEventListener('keydown', (e) => {
     if (e.keyCode == 46) {
         tr.nodes().forEach(node => {
             node.remove();
-            remove_bounding_box({topic: select_topic.value, image: image_counter, rect: node.toObject()})
+            remove_bounding_box({topic: select_topic.value, image: image_sequence, rect: node.toObject()})
         });
         tr.nodes([]);
     }
@@ -183,6 +197,7 @@ window.addEventListener('resize', fitStageIntoContainer);
 
 // Resize container and canvas
 function fitStageIntoContainer() {
+    // MISSING BOUNDING BOX RESIZE
     stage.width(div_container.clientWidth);
     stage.height(div_container.clientHeight);
 }

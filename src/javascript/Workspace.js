@@ -1,13 +1,14 @@
-var class_name = "";    // Save the current name of the selected class
-var sub_class_name = "";  // Save the current id of the selected sub_class
-var color_pick = "";    // Save the current color of the selected class
-var image_counter = 0;  // Current index of the image inside the canvas
-
 var list_class = document.getElementById("class_list");
 var checkbox = document.getElementById("sub_classes");
 var list_sub_class = document.getElementById("sub_class_list");
 var div_container = document.getElementById("container");
 var select_topic = document.getElementById("topics");
+var local_bounding = document.getElementById("keep_bounding");
+
+var class_name = "";        // Save the current name of the selected class
+var sub_class_name = "";    // Save the current id of the selected sub_class
+var color_pick = "";        // Save the current color of the selected class
+var image_sequence;         // Keep the actual image sequence
 
 // Show popup onclick button 
 document.getElementById("add_class").addEventListener('click', (e) => {
@@ -16,41 +17,23 @@ document.getElementById("add_class").addEventListener('click', (e) => {
 
 // Change target topic
 select_topic.addEventListener('change', (e) => {
-    image_counter = 0;
-    div_container.style.backgroundImage = `url(../bagFile/ros-1/${e.currentTarget.value}/img-${image_counter}.png)`;
+    get_first_image(e.currentTarget.value);
 
-    get_bounding_box({topic: e.currentTarget.value, image: image_counter});
-});
-
-// Set the visibility of sub_classes list
-checkbox.addEventListener('change', (e) => {
-    if (!e.currentTarget.checked) {
-        list_sub_class.style.visibility = "hidden";
-
-        list_sub_class.childNodes.forEach(node => {
-            node.style.borderColor = "white";
-        });
-        sub_class_name = "";
-    } else {
-        list_sub_class.style.visibility = "";
-    }
+    get_bounding_box({topic: e.currentTarget.value, image: image_sequence});
 });
 
 // Function onload to load image and get classes and bounding box saved
 $("#workspace").ready((e) => {
-    div_container.style.backgroundImage = `url(../bagFile/ros-1/${select_topic.value}/img-${image_counter}.png)`;
-    get_bounding_box({topic: select_topic.value, image: image_counter});
+    get_all_topics();
     get_classes();
-})
+});
 
 // Function for change image inside canvas
 $("#workspace").on("keydown", (e) => {
-    if (e.keyCode == 80 && image_counter > 0) { // P
-        div_container.style.backgroundImage = `url(../bagFile/ros-1/${select_topic.value}/img-${--image_counter}.png)`;
-        get_bounding_box({topic: select_topic.value, image: image_counter});
-    } else if (e.keyCode == 78) { // N
-        div_container.style.backgroundImage = `url(../bagFile/ros-1/${select_topic.value}/img-${++image_counter}.png)`;
-        get_bounding_box({topic: select_topic.value, image: image_counter});
+    if (e.keyCode == 188 && image_sequence > 0) { // P
+        get_image({topic : select_topic.value, seq : --image_sequence}, "P");
+    } else if (e.keyCode == 190) { // N
+        get_image({topic : select_topic.value, seq : ++image_sequence}, "N");
     }
 });
 
@@ -79,23 +62,21 @@ function create_class(msg) {
         color_pick = msg.color;
         sub_class_name = "";
 
+        list_sub_class.style.visibility = "";
+
         get_sub_classes(msg.name);
         set_selection(list_class, e.target);
-
-        // Set visibility for sub-classes list
-        if (!checkbox.checked) 
-            list_sub_class.style.visibility = "hidden";
-        else
-            list_sub_class.style.visibility = "";
     });
 
     node.addEventListener('dblclick', (e) => {
         remove_class({name : msg.name, color : msg.color});
         list_class.removeChild(e.target);
 
+        remove_local_bounding_box();
+
         get_sub_classes(msg.name);
 
-        get_bounding_box({topic: select_topic.value, image: image_counter});
+        get_bounding_box({topic: select_topic.value, image: image_sequence});
 
         class_name = "";
     });
@@ -145,4 +126,19 @@ function set_selection(div, dest) {
 function clear_sub_classes_sidebar() {
     while(list_sub_class.hasChildNodes())
         list_sub_class.removeChild(list_sub_class.lastElementChild);
+}
+
+// Load the image from buffer
+function load_background_image(buffer) {
+    div_container.style.backgroundImage = `url(data:image/png;base64,${buffer})`;
+}
+
+// Fill the tag select with the topics of the bag file just saved
+function fill_topics(topics) {
+    topics.forEach(topic => {
+        var node = document.createElement("option");
+        node.value = topic.name;
+        node.innerText = topic.name;
+        select_topic.appendChild(node);
+    });
 }

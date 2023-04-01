@@ -8,7 +8,7 @@
     <body>
 
         <form id="form">
-            <input type="file" id="bagFile" accept=".bag"> <br>
+            <input type="file" id="input_bag" accept=".bag"> <br>
             <input type="submit" value="extract" id="submit" />
         </form>
 
@@ -16,17 +16,13 @@
 
         <script type="text/javascript" src="../javascript/Socketfunction.js"></script>
         <script>            
-            var select = document.getElementById('bagFile');
+            var select = document.getElementById('input_bag');
 
             document.getElementById('submit').addEventListener('click', e => {
                 e.preventDefault();
 
-                if (select.value != "") {
-                    let split = select.value.split("\\");
-                    let filename = split[split.length - 1].split(".")[0];
-                    let extension = split[split.length - 1].split(".")[1];
-                    if (extension == "bag")
-                        extract_bag(filename);
+                if (select.value != "" && select.files[0].name.split('.')[1] == "bag") {
+                    save_bag_into_mongo(select.files[0].name);
                 }
             });
         </script>
