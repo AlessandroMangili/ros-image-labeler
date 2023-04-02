@@ -1,12 +1,13 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require("socket.io");
-
-const cv = require('opencv4nodejs');
+const fs = require('fs');
+const PATH = require('path');
 
 // JS file import
-const IMAGE = require(__dirname + '/javascript/Imagefunction');
-const MONGO = require(__dirname + '/javascript/DBfunction')
+const IMAGE = require(PATH.join(__dirname, 'javascript/Imagefunction'));
+const MONGO = require(PATH.join(__dirname, 'javascript/DBfunction'));
+const BASH = require(PATH.join(__dirname, 'javascript/Bashfunction'));
 
 const app = express();
 app.use(express.static(__dirname));
@@ -21,55 +22,103 @@ const bounding_box = {};
 
 var client;
 
-/*
-app.set('views', __dirname + '/views');
-app.set('view engine', 'html');
-
-app.use(require('body-parser').json({ limit: '10mb' }));
-*/
-
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/views/index.html');
+    res.sendFile(PATH.join(__dirname, 'views/index.html'));
 });
 
 app.get('/draw', (req, res) => {
-    res.sendFile(__dirname + '/views/label.html');
+    res.sendFile(PATH.join(__dirname, 'views/label.html'));
 });
 
 // SOCKET.IO
 
 io.on('connection', (socket) => {
     // Receive bag file
-    socket.on('save_bag', (msg, callback) => {
+    socket.on('save_bag', async (msg, callback) => {
+        
+        let path = PATH.join(__dirname, "db", msg);
 
-        // AVVIA L'ISTANZA MONGO CON NOME BAG PRESENTE IN MSG E RICAVARSI IL PATH DALLA CARTELLA CREATA PER CONENTENRE TUTTE LE ISTANZE
+        create_folder(path);
 
+        let mongodb = BASH.launch_mongodb(path, 62345);
+
+        mongodb.stdout.on("resume", (data) => {
+            console.log("SERVER MONGODB START");
+
+            setTimeout(() => {
+                // Start node for logging
+                let log = BASH.launch_log();
+
+                log.stdout.on("resume", (data) => {
+                    console.log("NODE LOG START");
+
+                    setTimeout(() => {
+                    // Start rosbag play command
+                        path = PATH.join(__dirname, "bag_file", msg);
+                        let bag = BASH.launch_rosbag_play(path);
+
+                        bag.stdout.on("end", async (data) => {
+                            console.log(`END READ FILE BAG`);
+
+                            log.kill();
+
+                            try {
+                                client = await MONGO.connect();
+                                console.log(`mongo is connected to local instance`);
+                                
+                                bag.kill();
+                            } catch (e) {
+                                console.error(`Error on connected mongodb: ${e}`);
+                            }
+                        });
+                    }, 5000);
+                });
+            }, 3000);
+        });       
     });
 
     // Return all valid topics (images) of the current bag file
     socket.on('get topics', async (_, callback) => {
-        let topics = await client.listCollections().toArray();
-        let clone = topics.slice();
+        if (client == null)
+            return;
 
-        topics.forEach(topic => {
-            if (topic.name.indexOf("image_raw") < 0)
-                clone.splice(clone.indexOf(topic), 1);
-        });
-        callback(clone);
+        try {
+            let topics = await client.listCollections().toArray();
+            let clone = topics.slice();
+    
+            topics.forEach(topic => {
+                if (topic.name.indexOf("image_raw") < 0)
+                    clone.splice(clone.indexOf(topic), 1);
+            });
+            callback(clone);
+        } catch (e) {
+            callback(`Error : ${e}`);
+        } 
     });
 
     // Send the first sequence number of that topic
     socket.on('get first_seq', async (msg, callback) => {
-        callback(await MONGO.get_first_seq(client, msg));
+        if (client == null)
+            return
+
+        try {
+            let result = await MONGO.get_first_seq(client, msg);
+            callback(result);
+        } catch (e) {
+            callback(`Error : ${e}`);
+        }
     });
 
     // Send the buffer that encode image
     socket.on('get image', async(msg, callback) => {
+        if (client == null)
+            return;
+
         try {
             let document = await client.collection(msg.topic).findOne({"header.seq" : msg.seq});
             callback(IMAGE.create_image_buffer(document));
         } catch (e) {
-            console.log(e);
+            console.error(e);
             callback(`Error on encoding image`);
         }
     })
@@ -176,18 +225,37 @@ function remove_bounding_box_by_class(class_name) {
     });
 }
 
+// FILESYSTEM FUNCTION
+
+function create_folder(path) {
+    if (!fs.existsSync(path)) {
+        try {
+            fs.mkdirSync(path, {recursive : true});
+            return true;
+        } catch (e) {
+            console.log(`Error on create folder at this path : ${path} with this error : ${e}`);
+            process.exit(1);
+        }
+    }
+    return false;
+}
+
+function folder_is_empty(path) {
+    fs.readdir(path, (e, files) => {
+        if (e)
+            console.log(`error on reading folder ${path} with this error : ${e}`);
+        else 
+            return files.length == 0 ? true : false;
+    });
+}
+
 // CONNECTION
 
 server.listen(port, async () => {
     console.log(`Server running on http://localhost:${port}`);
 
-    // Creare cartella per contenere tutte le istanze di mongo
+    create_folder(PATH.join(__dirname, "db"));
+    create_folder(PATH.join(__dirname, "bag_file"));
 
-    try {
-        client = await MONGO.connect();
-    } catch (e) {
-        console.log(`Error: ${e}`);
-        process.exit(100);
-    }
+    BASH.launch_roscore();
 });
-

@@ -1,2 +1,2 @@
-src/bagFile
-.env
+src/db
+src/bag_file

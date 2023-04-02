@@ -5,6 +5,13 @@ var socket = io();
 // Get get all topics of the current bag file
 function get_all_topics() {
     socket.emit('get topics', "", (res) => {
+
+        if (String(res).indexOf("Error") >= 0) {
+            alert(res);
+            window.location.href = "/";
+            return;
+        }
+
         fill_topics(res);
 
         get_first_image(select_topic.value);
@@ -14,6 +21,13 @@ function get_all_topics() {
 // Get the first sequence number of that topic
 function get_first_image(msg) {
     socket.emit('get first_seq', msg, (res) => {
+
+        if (String(res).indexOf("Error") >= 0) {
+            alert(res);
+            window.location.href = "/";
+            return;
+        }
+        
         if (image_sequence < 0) {
             alert("Si è verificato un errore");
             return;
