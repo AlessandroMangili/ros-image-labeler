@@ -12,8 +12,6 @@
             <input type="submit" value="extract" id="submit" />
         </form>
 
-        <a href="draw">Modifica set</a>
-
         <script type="text/javascript" src="../javascript/Socketfunction.js"></script>
         <script>            
             var select = document.getElementById('input_bag');
@@ -21,9 +19,9 @@
             document.getElementById('submit').addEventListener('click', e => {
                 e.preventDefault();
 
-                if (select.value != "" && select.files[0].name.split('.')[1] == "bag") {
+                if (select.value != "" && select.files[0].name.split('.')[1] == "bag")
                     save_bag_into_mongo(select.files[0].name.split('.')[0]);
-                }
+                
             });
         </script>
     </body>

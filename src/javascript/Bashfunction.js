@@ -96,6 +96,15 @@ module.exports = {
             }
         });
 
+        log.stdout.on("data", (data) => {
+            console.log(`read data from log node : ${data}`);
+            // When the log node add succesfully the topics, then we can starts
+            /*
+            if (data.indexOf("GENERIC") >= 0)
+                bag.stdin.write(" ");
+            */
+        });
+
         log.stdout.on("error", (data) => {
             console.log(`error from log node : ${data}`);
         });

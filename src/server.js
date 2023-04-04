@@ -21,27 +21,48 @@ const sub_classes = {};
 const bounding_box = {};
 
 var client;
+// contains mongodb launch command process
 var mongodb;
+// contains roscore command process
+var roscore;
+// useful for check if connection to mongodb is started or not
+var access_garanteed = false;
 
 app.get('/', (req, res) => {
     res.sendFile(PATH.join(__dirname, 'views/index.html'));
 });
 
 app.get('/draw', (req, res) => {
-    res.sendFile(PATH.join(__dirname, 'views/label.html'));
+    if (access_garanteed)
+        res.sendFile(PATH.join(__dirname, 'views/label.html'));
+    else
+        res.status(403).end("Forbidden: you are not authorized here for now, just select a local instance of db or proceed with the creation by saving a bag file");
 });
+
+/*app.get('/*', (req, res) => {
+    res.sendFile(PATH.join(__dirname + "/views/404.html"));
+});*/
 
 // SOCKET.IO
 
 io.on('connection', (socket) => {
     // Receive bag file
     socket.on('save_bag', async (msg, callback) => {
-        if (mongodb) {
-            await process.kill(-mongodb.pid);
-            setTimeout(() => {create_local_db(msg)}, 2000);
+        access_garanteed = false;
+
+        if (!await folder_is_empty(PATH.join(__dirname, "db", msg))) {
+            console.warn("There are already a local repository of that file, if you want to save again, delete the folder");
             return;
         }
-        create_local_db(msg);
+
+        // '-' is for kill all subprocess of that process and awit is for handle the promise
+        if (mongodb) {
+            await process.kill(-mongodb.pid);
+            setTimeout(() => {create_local_db(msg, callback)}, 2000);
+            return;
+        }
+        
+        create_local_db(msg, callback);
     });
 
     // Return all valid topics (images) of the current bag file
@@ -194,14 +215,15 @@ function remove_bounding_box_by_class(class_name) {
     });
 }
 
-// Create and fill local instace of db from bag file
-function create_local_db(msg) {
+function create_local_db(msg, callback) {
     // Create path for saved the local instance mongodb
     let path = PATH.join(__dirname, "db", msg);
     create_folder(path);
 
+    // Start the mongodb server
     mongodb = BASH.launch_mongodb(path, 62345);
 
+    // The timeout is to wait for the mongodb server to start
     setTimeout(() => {
         path = PATH.join(__dirname, "bag_file", msg);
         BASH.info_rosbag(path);
@@ -216,50 +238,53 @@ function create_local_db(msg) {
         bag.stdout.on("end", async () => {
             console.log(`END READ FILE BAG`);
 
+            // '-' is for kill all subprocess of that process and awit is for handle the promise
             await process.kill(-log.pid);
 
             // Start the connection to local instance of db
             try {
                 client = await MONGO.connect();
+                access_garanteed = true;
+                callback("OK");
             } catch (e) {
                 console.error(`Error on connected mongodb: ${e}`);
+                callback(`Error on connected mongodb: ${e}`);
             }
         });
-
-        log.stdout.on("data", (data) => {
-            console.log(`read data from log node : ${data}`);
-            // When the log node add succesfully the topics, then we can starts
-            /*
-            if (data.indexOf("GENERIC") >= 0)
-                bag.stdin.write(" ");
-            */
-        });
-
     }, 1000);
     return;
 }
 
 // FILESYSTEM FUNCTION
 
-function create_folder(path) {
+async function create_folder(path) {
     if (!fs.existsSync(path)) {
         try {
             fs.mkdirSync(path, {recursive : true});
             return true;
         } catch (e) {
-            console.log(`Error on create folder at this path : ${path} with this error : ${e}`);
+            console.error(`Error on create folder at this path : ${path} with this error : ${e}`);
+            if (roscore)
+                await process.kill(-roscore.pid);
             process.exit(1);
         }
     }
     return false;
 }
 
-function folder_is_empty(path) {
-    fs.readdir(path, (e, files) => {
-        if (e)
-            console.log(`error on reading folder ${path} with this error : ${e}`);
-        else 
-            return files.length == 0 ? true : false;
+async function folder_is_empty(path) {
+    if (!fs.existsSync(path))
+        return true;
+
+    return new Promise((resolve, reject) => {
+        fs.readdir(path, (e, files) => {
+            if (e) {
+                console.error(`error on reading folder ${path} with this error : ${e}`);
+                resolve(false);
+            }
+            else 
+                return files.length == 0 ? resolve(true) : resolve(false);
+        });
     });
 }
 
@@ -270,5 +295,5 @@ server.listen(port, async () => {
 
     create_folder(PATH.join(__dirname, "bag_file"));
 
-    BASH.launch_roscore();
+    roscore = BASH.launch_roscore();
 });

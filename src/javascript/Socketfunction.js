@@ -144,5 +144,7 @@ function remove_bounding_box(msg) {
 function save_bag_into_mongo(filename) {
     socket.emit('save_bag', filename, (res) => {
         console.log(res);
+        if (res == "OK")
+            window.location.href = "/draw";
     });
 }
