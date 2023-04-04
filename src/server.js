@@ -21,6 +21,7 @@ const sub_classes = {};
 const bounding_box = {};
 
 var client;
+var mongodb;
 
 app.get('/', (req, res) => {
     res.sendFile(PATH.join(__dirname, 'views/index.html'));
@@ -35,46 +36,12 @@ app.get('/draw', (req, res) => {
 io.on('connection', (socket) => {
     // Receive bag file
     socket.on('save_bag', async (msg, callback) => {
-        
-        let path = PATH.join(__dirname, "db", msg);
-
-        create_folder(path);
-
-        let mongodb = BASH.launch_mongodb(path, 62345);
-
-        mongodb.stdout.on("resume", (data) => {
-            console.log("SERVER MONGODB START");
-
-            setTimeout(() => {
-                // Start node for logging
-                let log = BASH.launch_log();
-
-                log.stdout.on("resume", (data) => {
-                    console.log("NODE LOG START");
-
-                    setTimeout(() => {
-                    // Start rosbag play command
-                        path = PATH.join(__dirname, "bag_file", msg);
-                        let bag = BASH.launch_rosbag_play(path);
-
-                        bag.stdout.on("end", async (data) => {
-                            console.log(`END READ FILE BAG`);
-
-                            log.kill();
-
-                            try {
-                                client = await MONGO.connect();
-                                console.log(`mongo is connected to local instance`);
-                                
-                                bag.kill();
-                            } catch (e) {
-                                console.error(`Error on connected mongodb: ${e}`);
-                            }
-                        });
-                    }, 5000);
-                });
-            }, 3000);
-        });       
+        if (mongodb) {
+            await process.kill(-mongodb.pid);
+            setTimeout(() => {create_local_db(msg)}, 2000);
+            return;
+        }
+        create_local_db(msg);
     });
 
     // Return all valid topics (images) of the current bag file
@@ -213,6 +180,8 @@ io.on('connection', (socket) => {
     });
 });
 
+// FUNCTION
+
 // Remove all bounding box of a class
 function remove_bounding_box_by_class(class_name) {
     Object.keys(bounding_box).forEach((topic, _) => {
@@ -223,6 +192,51 @@ function remove_bounding_box_by_class(class_name) {
             });
         });
     });
+}
+
+// Create and fill local instace of db from bag file
+function create_local_db(msg) {
+    // Create path for saved the local instance mongodb
+    let path = PATH.join(__dirname, "db", msg);
+    create_folder(path);
+
+    mongodb = BASH.launch_mongodb(path, 62345);
+
+    setTimeout(() => {
+        path = PATH.join(__dirname, "bag_file", msg);
+        BASH.info_rosbag(path);
+
+        // Start node for logging
+        let log = BASH.launch_log();
+
+        // Start rosbag play command
+        let bag = BASH.launch_rosbag_play(path);
+
+        // When the rosbag file is finished
+        bag.stdout.on("end", async () => {
+            console.log(`END READ FILE BAG`);
+
+            await process.kill(-log.pid);
+
+            // Start the connection to local instance of db
+            try {
+                client = await MONGO.connect();
+            } catch (e) {
+                console.error(`Error on connected mongodb: ${e}`);
+            }
+        });
+
+        log.stdout.on("data", (data) => {
+            console.log(`read data from log node : ${data}`);
+            // When the log node add succesfully the topics, then we can starts
+            /*
+            if (data.indexOf("GENERIC") >= 0)
+                bag.stdin.write(" ");
+            */
+        });
+
+    }, 1000);
+    return;
 }
 
 // FILESYSTEM FUNCTION
@@ -254,7 +268,6 @@ function folder_is_empty(path) {
 server.listen(port, async () => {
     console.log(`Server running on http://localhost:${port}`);
 
-    create_folder(PATH.join(__dirname, "db"));
     create_folder(PATH.join(__dirname, "bag_file"));
 
     BASH.launch_roscore();
