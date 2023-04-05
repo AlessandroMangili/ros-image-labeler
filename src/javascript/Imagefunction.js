@@ -7,7 +7,7 @@ module.exports = {
             
         var matrix;
         try {
-            if (result.encoding == "rgb8") { // Encoding from BGR to RGB
+            if (result.encoding == 'rgb8') { // Encoding from BGR to RGB
                 let matFromArray = new cv.Mat(Buffer.from(result.data.buffer), result.height, result.width, cv.CV_8UC3);
                 let [matB, matG, matR] = matFromArray.splitChannels();
                 matrix = new cv.Mat([matR, matG, matB]);
@@ -22,4 +22,3 @@ module.exports = {
         }
     }
 }
-

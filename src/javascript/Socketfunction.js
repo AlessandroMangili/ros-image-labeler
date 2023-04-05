@@ -2,13 +2,13 @@
 
 var socket = io();
 
-// Get get all topics of the current bag file
+// Get get all topics of the selected local instance of mongodb and load the first image
 function get_all_topics() {
-    socket.emit('get topics', "", (res) => {
+    socket.emit('get topics', '', (res) => {
 
-        if (String(res).indexOf("Error") >= 0) {
+        if (String(res).indexOf('error') >= 0) {
             alert(res);
-            window.location.href = "/";
+            window.location.href = '/';
             return;
         }
 
@@ -18,18 +18,18 @@ function get_all_topics() {
     });
 }
 
-// Get the first sequence number of that topic
+// Get the first sequence number of the topic
 function get_first_image(msg) {
     socket.emit('get first_seq', msg, (res) => {
 
-        if (String(res).indexOf("Error") >= 0) {
+        if (String(res).indexOf('error') >= 0) {
             alert(res);
-            window.location.href = "/";
+            window.location.href = '/';
             return;
         }
         
         if (image_sequence < 0) {
-            alert("Si è verificato un errore");
+            alert('Si è verificato un errore');
             return;
         }
 
@@ -39,19 +39,21 @@ function get_first_image(msg) {
     });
 }
 
+// Get the image from topic and sequence number and show it
 function get_image(msg, mode) {
     socket.emit('get image', msg, (res) => {
-        // If res is null, the image doesn't exits
-            if (res == null) {
-                if (mode == "P")
+        // If res is null, the image does not exist
+        if (res == null) {
+            // If mode è P, then inc the sequence number, otherwise dec
+            if (mode == 'P')
                 image_sequence++;
-            else if (mode == "N")
+            else if (mode == 'N')
                 image_sequence--;   
-            return;
+        return;
         }
             
         // Check if res is an error
-        if (res.indexOf("Error") >= 0) {
+        if (res.indexOf('error') >= 0) {
             console.log(res);
             return;
         }
@@ -61,32 +63,32 @@ function get_image(msg, mode) {
     });
 }
 
-// Add class with name and color
+// Add class formed by name and color
 function add_class(msg) {
     socket.emit('add class', msg);
 }
 
-// Add sub-class with class name and sub-class name
+// Add sub-class for selected class formed by sub-class name
 function add_sub_class(msg) {
     socket.emit('add sub_class', msg);
 }
 
-// Add bounding box by topic, image and rect
+// Add bounding box formed by topic, image and rect
 function add_bounding_box(msg) {
     socket.emit('add bounding_box', msg);
 }
 
 // Get all classes
 function get_classes() {
-    // Fill the left sidebar with the classes already created
-    socket.emit('get classes', "", (res) => {
+    // Fill the left sidebar with the classes saved
+    socket.emit('get classes', '', (res) => {
         res.forEach(node => {
             create_class(node);
         });
     });
 }
 
-// Get all sub-classes by the class name
+// Get all sub-classes from class name
 function get_sub_classes(msg) {
     socket.emit('get sub_classes', msg, (res) => {
         clear_sub_classes_sidebar();
@@ -97,9 +99,9 @@ function get_sub_classes(msg) {
     });
 }
 
-// Get all bounding bounding box of an image by topic and image counter
+// Get all bounding bounding box of an image by topic and image sequence
 function get_bounding_box(msg) {
-    socket.emit("get bounding_box", msg, (res) => {
+    socket.emit('get bounding_box', msg, (res) => {
         if (!local_bounding.checked)
             remove_local_bounding_box();
         else {
@@ -124,27 +126,54 @@ function get_bounding_box(msg) {
     });
 }
 
-// Remove class by name
+// Remove class from the name
 function remove_class(msg) {
     socket.emit('remove class', msg);
 }
 
-// Remove sub-class by name of the class and subclass
+// Remove sub-class from the class name
 function remove_sub_class(msg) {
     socket.emit('remove sub_class', msg);
 }
 
-// Remove bounding box by rect config
+// Remove bounding box from the rect
 function remove_bounding_box(msg) {
     socket.emit('remove bounding_box', msg);
 }
 
 // INDEX
 
+// Save the bag file inside the newly created local mongodb instace
 function save_bag_into_mongo(filename) {
     socket.emit('save_bag', filename, (res) => {
         console.log(res);
-        if (res == "OK")
-            window.location.href = "/draw";
+        if (res.indexOf('OK') >= 0)
+            window.location.href = '/draw';
+    });
+}
+
+// Get all local instaces
+function get_db() {
+    socket.emit('get db', '', (res) => {
+        console.log(res);
+
+        if (res.indexOf('error') >= 0)
+            return;
+        
+        res.forEach(collection => {
+            var node = document.createElement('option');
+            node.value = collection;
+            node.innerText = collection;
+            db.appendChild(node);
+        });
+    });
+}
+
+// Connect the mongodb client to the selected local instace
+function load_db(msg) {
+    socket.emit('load db', msg, (res) => {
+        console.log(res);
+        if (res.indexOf('OK') >= 0)
+            window.location.href = '/draw';
     });
 }

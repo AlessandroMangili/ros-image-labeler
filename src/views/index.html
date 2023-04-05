@@ -3,24 +3,43 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!-- Socker.io -->
         <script type="text/javascript" src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+        <link type="text/css" rel="stylesheet" href="/stylesheets/style.css">
     </head>
     <body>
-
-        <form id="form">
-            <input type="file" id="input_bag" accept=".bag"> <br>
-            <input type="submit" value="extract" id="submit" />
-        </form>
+        <div class="row">
+            <div class="column">
+                <input type="file" id="input_bag" accept=".bag" /><br>
+                <input type="submit" value="extract" id="submit" />
+            </div>
+            <div class="column">
+                <label>Seleziona una delle collection da labellare: </label>
+                <select id="db">
+                    <option value="null"></option>
+                </select>
+            </div>
+        </div>
 
         <script type="text/javascript" src="../javascript/Socketfunction.js"></script>
-        <script>            
-            var select = document.getElementById('input_bag');
+        <script>
+            var bag = document.getElementById('input_bag');
+            var db = document.getElementById('db');
+
+            window.addEventListener('load', () => {
+                get_db();
+            });
+            
+            db.addEventListener('change', e => {
+                if (e.currentTarget.value != null)
+                    load_db(e.currentTarget.value);
+            });
 
             document.getElementById('submit').addEventListener('click', e => {
                 e.preventDefault();
 
-                if (select.value != "" && select.files[0].name.split('.')[1] == "bag")
-                    save_bag_into_mongo(select.files[0].name.split('.')[0]);
+                if (bag.value != "" && bag.files[0].name.split('.')[1] == "bag")
+                    save_bag_into_mongo(bag.files[0].name.split('.')[0]);
                 
             });
         </script>

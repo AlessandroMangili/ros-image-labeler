@@ -1,6 +1,6 @@
 const express = require('express');
 const http = require('http');
-const { Server } = require("socket.io");
+const { Server } = require('socket.io');
 const fs = require('fs');
 const PATH = require('path');
 
@@ -21,11 +21,11 @@ const sub_classes = {};
 const bounding_box = {};
 
 var client;
-// contains mongodb launch command process
+// contains process of command mongodb_store.launch 
 var mongodb;
-// contains roscore command process
+// contains process of command roscore
 var roscore;
-// useful for check if connection to mongodb is started or not
+// check if the connection with the mongodb server is active or not
 var access_garanteed = false;
 
 app.get('/', (req, res) => {
@@ -36,22 +36,32 @@ app.get('/draw', (req, res) => {
     if (access_garanteed)
         res.sendFile(PATH.join(__dirname, 'views/label.html'));
     else
-        res.status(403).end("Forbidden: you are not authorized here for now, just select a local instance of db or proceed with the creation by saving a bag file");
+        res.status(403).end('Forbidden: you are not authorized here for now, just select a local instance of db or proceed with the creation by saving a bag file');
 });
 
 /*app.get('/*', (req, res) => {
-    res.sendFile(PATH.join(__dirname + "/views/404.html"));
+    res.sendFile(PATH.join(__dirname + '/views/404.html'));
 });*/
 
 // SOCKET.IO
 
 io.on('connection', (socket) => {
-    // Receive bag file
+
+    // Create a new local instace from the bag file
     socket.on('save_bag', async (msg, callback) => {
         access_garanteed = false;
 
-        if (!await folder_is_empty(PATH.join(__dirname, "db", msg))) {
-            console.warn("There are already a local repository of that file, if you want to save again, delete the folder");
+        // Check if the bag file exist in bag_file folder or not
+        if(!fs.existsSync(PATH.join(__dirname, 'bag_file', `${msg}.bag`))) {
+            console.warn(`${msg}.bag does not exist in folder \'bag_file\'`);
+            callback(`${msg}.bag does not exist in folder \'bag_file\'`);
+            return;
+        }
+
+        // Check if the folder of local instance is empty or not
+        if (!await folder_is_empty(PATH.join(__dirname, 'db', msg))) {
+            console.warn('There is already a local repository of that file, if you want to save again, delete the folder');
+            callback('There is already a local repository of that file, if you want to save again, delete the folder');
             return;
         }
 
@@ -65,7 +75,7 @@ io.on('connection', (socket) => {
         create_local_db(msg, callback);
     });
 
-    // Return all valid topics (images) of the current bag file
+    // Return all valid topics (image_raw) of the current local instace
     socket.on('get topics', async (_, callback) => {
         if (client == null)
             return;
@@ -75,12 +85,12 @@ io.on('connection', (socket) => {
             let clone = topics.slice();
     
             topics.forEach(topic => {
-                if (topic.name.indexOf("image_raw") < 0)
+                if (topic.name.indexOf('image_raw') < 0)
                     clone.splice(clone.indexOf(topic), 1);
             });
             callback(clone);
         } catch (e) {
-            callback(`Error : ${e}`);
+            callback(`error : ${e}`);
         } 
     });
 
@@ -93,7 +103,7 @@ io.on('connection', (socket) => {
             let result = await MONGO.get_first_seq(client, msg);
             callback(result);
         } catch (e) {
-            callback(`Error : ${e}`);
+            callback(`error : ${e}`);
         }
     });
 
@@ -103,13 +113,42 @@ io.on('connection', (socket) => {
             return;
 
         try {
-            let document = await client.collection(msg.topic).findOne({"header.seq" : msg.seq});
+            let document = await client.collection(msg.topic).findOne({'header.seq' : msg.seq});
             callback(IMAGE.create_image_buffer(document));
         } catch (e) {
             console.error(e);
-            callback(`Error on encoding image`);
+            callback(`error on encoding image`);
         }
-    })
+    });
+
+    // Send all the local instace of mongodb
+    socket.on('get db', async (msg, callback) => {
+        access_garanteed = false;
+        callback(await list_file_folder(PATH.join(__dirname, 'db')));
+    });
+
+    // Connect the mongodb client to its local instace
+    socket.on('load db', async (msg, callback) => {
+        access_garanteed = false;
+        let path = PATH.join(__dirname, 'db', msg);
+
+        // Check if the folder of local db instance is empty
+        if (await folder_is_empty(path)) {
+            console.warn('The selected instace does not exist or the relative folder is empty');
+            callback('The selected instace does not exist or the relative folder is empty');
+            return;
+        }
+
+        if (mongodb) {
+            await process.kill(-mongodb.pid);
+            setTimeout(() => {connect_db(path, callback)}, 2000);
+            return;
+        }
+
+        connect_db(path, callback);
+    });
+
+    // HANDLE BOUNDING BOX
 
     // Add new class
     socket.on('add class', (msg) => {
@@ -117,7 +156,7 @@ io.on('connection', (socket) => {
         sub_classes[msg.name] = [];
     });
 
-    // Add new sub_class
+    // Add new sub-class
     socket.on('add sub_class', (msg) => {
         sub_classes[msg.name].push(msg.sub_name);
     });
@@ -145,19 +184,19 @@ io.on('connection', (socket) => {
         callback(classes);
     });
 
-    // Send all subClasses releated to a class
+    // Send all sub-classes releated to that class
     socket.on('get sub_classes', (name, callback) => {
         callback(sub_classes[name]);
     });
 
-    // Send all bounding box releted to that path
+    // Send all bounding box releted to that image
     socket.on('get bounding_box', (msg, callback) => {
         bounding_box[msg.topic] = bounding_box[msg.topic] || {};
         bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
         callback(bounding_box[msg.topic][msg.image]);
     });
 
-    // Remove class and all bounding box
+    // Remove the class and all its bounding box
     socket.on('remove class', (msg) => {
         try {
             let index = 0;
@@ -177,7 +216,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Remove sub_class
+    // Remove sub-class
     socket.on('remove sub_class', (msg) => {
         let index = sub_classes[msg.name].indexOf(msg.sub_name);
         if (index > -1)
@@ -216,54 +255,71 @@ function remove_bounding_box_by_class(class_name) {
 }
 
 function create_local_db(msg, callback) {
-    // Create path for saved the local instance mongodb
-    let path = PATH.join(__dirname, "db", msg);
+    // Create the path to save the db instace
+    let path = PATH.join(__dirname, 'db', msg);
     create_folder(path);
 
-    // Start the mongodb server
+    // Start command mongodb_store.launch (server)
     mongodb = BASH.launch_mongodb(path, 62345);
 
     // The timeout is to wait for the mongodb server to start
     setTimeout(() => {
-        path = PATH.join(__dirname, "bag_file", msg);
+        path = PATH.join(__dirname, 'bag_file', msg);
         BASH.info_rosbag(path);
 
-        // Start node for logging
+        // Start command mongodb_log
         let log = BASH.launch_log();
 
-        // Start rosbag play command
+        // Start command rosbag play 
         let bag = BASH.launch_rosbag_play(path);
 
-        // When the rosbag file is finished
-        bag.stdout.on("end", async () => {
+        // The bag file is over
+        bag.stdout.on('end', async () => {
             console.log(`END READ FILE BAG`);
 
             // '-' is for kill all subprocess of that process and awit is for handle the promise
             await process.kill(-log.pid);
 
-            // Start the connection to local instance of db
+            // Start the connection to mongodb client
             try {
                 client = await MONGO.connect();
                 access_garanteed = true;
-                callback("OK");
+                callback('OK');
             } catch (e) {
-                console.error(`Error on connected mongodb: ${e}`);
-                callback(`Error on connected mongodb: ${e}`);
+                console.error(`error on connected mongodb: ${e}`);
+                callback(`error on connected mongodb: ${e}`);
             }
         });
     }, 1000);
     return;
 }
 
+// Connect to local instace, start mongodb server
+async function connect_db(path, callback) {
+    // Start command mongodb_store.launch (server)
+    mongodb = BASH.launch_mongodb(path, 62345);
+
+    // Start the connection to mongodb client
+    try {
+        client = await MONGO.connect();
+        access_garanteed = true;
+        callback('OK');
+    } catch (e) {
+        console.error(`error on connected mongodb: ${e}`);
+        callback(`error on connected mongodb: ${e}`);
+    }
+}
+
 // FILESYSTEM FUNCTION
 
+// Create folder if it does not exist
 async function create_folder(path) {
     if (!fs.existsSync(path)) {
         try {
             fs.mkdirSync(path, {recursive : true});
             return true;
         } catch (e) {
-            console.error(`Error on create folder at this path : ${path} with this error : ${e}`);
+            console.error(`error on create folder at this path : ${path} with this error : ${e}`);
             if (roscore)
                 await process.kill(-roscore.pid);
             process.exit(1);
@@ -272,6 +328,7 @@ async function create_folder(path) {
     return false;
 }
 
+// Check if the folder exist and if it's empty
 async function folder_is_empty(path) {
     if (!fs.existsSync(path))
         return true;
@@ -288,12 +345,29 @@ async function folder_is_empty(path) {
     });
 }
 
+// Return the list of files in the folder
+async function list_file_folder(path) {
+    if (!fs.existsSync(path))
+        return [];
+
+    return new Promise((resolve, reject) => {
+        fs.readdir(path, (e, files) => {
+            if (e) {
+                console.error(`error on reading folder ${path} with this error : ${e}`);
+                reject(`error: ${e}`);
+            }
+            else
+                return files.length == 0 ? resolve([]) : resolve(files);
+        });
+    });
+}
+
 // CONNECTION
 
 server.listen(port, async () => {
     console.log(`Server running on http://localhost:${port}`);
 
-    create_folder(PATH.join(__dirname, "bag_file"));
+    create_folder(PATH.join(__dirname, 'bag_file'));
 
     roscore = BASH.launch_roscore();
 });

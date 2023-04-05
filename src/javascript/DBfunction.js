@@ -7,7 +7,7 @@ module.exports = {
         const client = new MongoClient(URI);
         try {
             await client.connect();
-            return client.db("roslog");
+            return client.db('roslog');
         } catch(connect_error) {
             throw new Error(connect_error);
         }

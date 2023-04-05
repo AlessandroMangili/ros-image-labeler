@@ -63,7 +63,7 @@ stage.on('mousemove touchmove', (e) => {
 });
 
 stage.on('mouseup touchend', (e) => {
-    // Chechk if the target is a bounding box, then save the changes
+    // Check if the target is a bounding box, then save the changes
     if (e.target._id > 14) {
         console.log(tr.nodes());
         // MANCA DA SPOSTARE UNA SELEZIONE DI PIÙ BOUNDING BOX
@@ -95,12 +95,13 @@ stage.on('mouseup touchend', (e) => {
     }
 
     // Check if the user pressed ctrl key for draw the bounding box
-    // Check if the width and height of bounding box is >= 20 then draw it
+    // Check if the width and height of bounding box is greater then or equal to 20, then draw it
     if (wantDraw && box.width >= 20 && box.height >= 20) {
-        if (class_name == "") {
-            alert("You need first to create or select a class");
+        if (class_name == '') {
+            alert('You need first to create or select a class');
             return;
         }
+
         let rect = new Konva.Rect({
             x: selectionRectangle.attrs.x,
             y: selectionRectangle.attrs.y,
@@ -126,8 +127,8 @@ stage.on('mouseup touchend', (e) => {
         if (!checkbox.checked)
             return;
         
-        // If a sub_class is already selected, so don't create a new sub_class
-        if (sub_class_name == "") {
+        // If a sub-class is already selected, so don't create a new sub-class
+        if (sub_class_name == '') {
             // Popup for asking subclass name
             $('#sub_class_dialog').dialog('open');
         } else {
@@ -148,7 +149,6 @@ stage.on('click', (e) => {
         return;
     }
 
-    // do we pressed shift or ctrl?
     const metaPressed = e.evt.shiftKey || e.evt.ctrlKey || e.evt.metaKey;
     const isSelected = tr.nodes().indexOf(e.target) >= 0;
 
@@ -170,7 +170,7 @@ stage.on('click', (e) => {
     }
 });
 
-// Function to delete bounding box on canc key press
+// Remove a bounding box by pressing canc key
 container.addEventListener('keydown', (e) => {
     if (e.keyCode == 46) {
         tr.nodes().forEach(node => {
@@ -197,7 +197,7 @@ window.addEventListener('resize', fitStageIntoContainer);
 
 // Resize container and canvas
 function fitStageIntoContainer() {
-    // MISSING BOUNDING BOX RESIZE
+    // MANCA IL RESIZE DEI BOUNDING BOX
     stage.width(div_container.clientWidth);
     stage.height(div_container.clientHeight);
 }
