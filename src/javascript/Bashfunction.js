@@ -14,7 +14,6 @@ module.exports = {
         roscore.on('exit', (code, signal) => {
             if (code) {
                 console.error('roscore exited with code', code);
-                return;
             } else if (signal) {
                 console.error('roscore was killed with signal', signal);
                 return;

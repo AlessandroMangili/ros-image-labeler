@@ -45,11 +45,12 @@ function get_image(msg, mode) {
         // If res is null, the image does not exist
         if (res == null) {
             // If mode è P, then inc the sequence number, otherwise dec
-            if (mode == 'P')
+            if (mode == 'P') {
+                remove_local_bounding_box();
                 image_sequence++;
-            else if (mode == 'N')
+            } else if (mode == 'N')
                 image_sequence--;   
-        return;
+            return;
         }
             
         // Check if res is an error
@@ -118,6 +119,13 @@ function get_bounding_box(msg) {
             let rect = new Konva.Rect(node);
 
             rect.on('transformend', () => {
+
+                rect.setAttrs({
+                    'width' : rect.width() * rect.scaleX(),
+                    'height' : rect.height() * rect.scaleY(),
+                    'scaleX' : 1,
+                    'scaleY' : 1,
+                });
                 add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()})
             });
 

@@ -16,9 +16,20 @@ module.exports = {
                 let [matB, matG, matR, matX] = matFromArray.splitChannels();
                 matrix = new cv.Mat([matX]);
             }
-            return cv.imencode('.png', matrix).toString('base64');
+            return cv.imencode('.png', matrix);
         } catch (e) {
             throw new Error(e);
         }
+    },
+
+    save_bounding_image : function(buffer, rect) {
+        let matrix = cv.imdecode(buffer);
+        matrix.drawRectangle(new cv.Rect(rect.x, rect.y, rect.width, rect.height), hex_to_rgb(rect.stroke), rect.strokeWidth);
+        cv.imwrite('./face-dect.png', matrix);
     }
+}
+
+function hex_to_rgb(value) {
+    let hex_color = value.replace('#', '');
+    return new cv.Vec3(parseInt(hex_color.substring(4, 6), 16), parseInt(hex_color.substring(2, 4), 16), parseInt(hex_color.substring(0, 2), 16));
 }

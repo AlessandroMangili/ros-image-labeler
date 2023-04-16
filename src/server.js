@@ -67,7 +67,11 @@ io.on('connection', (socket) => {
 
         // '-' is for kill all subprocess of that process and awit is for handle the promise
         if (mongodb) {
-            await process.kill(-mongodb.pid);
+            try {
+                await process.kill(-mongodb.pid);
+            } catch (e) {
+                console.log(`Error on kill process ${e}`);
+            }
             setTimeout(() => {create_local_db(msg, callback)}, 2000);
             return;
         }
@@ -114,7 +118,7 @@ io.on('connection', (socket) => {
 
         try {
             let document = await client.collection(msg.topic).findOne({'header.seq' : msg.seq});
-            callback(IMAGE.create_image_buffer(document));
+            callback(IMAGE.create_image_buffer(document).toString('base64'));
         } catch (e) {
             console.error(e);
             callback(`error on encoding image`);
@@ -140,7 +144,12 @@ io.on('connection', (socket) => {
         }
 
         if (mongodb) {
-            await process.kill(-mongodb.pid);
+            try {
+                await process.kill(-mongodb.pid);
+            } catch (e) {
+                console.log(`Error on kill process ${e}`);
+            }
+            
             setTimeout(() => {connect_db(path, callback)}, 2000);
             return;
         }
@@ -162,7 +171,16 @@ io.on('connection', (socket) => {
     });
 
     // Add a specific bounding box
-    socket.on('add bounding_box', (msg) => {
+    socket.on('add bounding_box', async (msg) => {
+
+        try {
+            let document = await client.collection(msg.topic).findOne({'header.seq' : msg.image});
+            //console.log(msg.rect);
+            IMAGE.save_bounding_image(IMAGE.create_image_buffer(document), msg.rect.attrs);
+        } catch (e) {
+            console.error(e);
+        }
+        
         bounding_box[msg.topic] = bounding_box[msg.topic] || {};
         bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
 
@@ -278,7 +296,12 @@ function create_local_db(msg, callback) {
             console.log(`END READ FILE BAG`);
 
             // '-' is for kill all subprocess of that process and awit is for handle the promise
-            await process.kill(-log.pid);
+            try {
+                await process.kill(-log.pid);
+            } catch (e) {
+                console.log(`Error on kill process ${e}`);
+            }
+            
 
             // Start the connection to mongodb client
             try {
@@ -320,8 +343,13 @@ async function create_folder(path) {
             return true;
         } catch (e) {
             console.error(`error on create folder at this path : ${path} with this error : ${e}`);
-            if (roscore)
-                await process.kill(-roscore.pid);
+            if (roscore) {
+                try {
+                    await process.kill(-roscore.pid);
+                } catch (e) {
+                    console.log(`Error on kill process ${e}`);
+                }
+            }
             process.exit(1);
         }
     }
