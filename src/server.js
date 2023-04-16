@@ -20,6 +20,7 @@ const classes = [];
 const sub_classes = {};
 const bounding_box = {};
 
+// contains the connection with the mongodb local instance 
 var client;
 // contains process of command mongodb_store.launch 
 var mongodb;
@@ -36,12 +37,12 @@ app.get('/draw', (req, res) => {
     if (access_garanteed)
         res.sendFile(PATH.join(__dirname, 'views/label.html'));
     else
-        res.status(403).end('Forbidden: you are not authorized here for now, just select a local instance of db or proceed with the creation by saving a bag file');
+        res.sendFile(PATH.join(__dirname, '/views/403.html'));
 });
 
-/*app.get('/*', (req, res) => {
-    res.sendFile(PATH.join(__dirname + '/views/404.html'));
-});*/
+app.get('/*', (req, res) => {
+    res.sendFile(PATH.join(__dirname, '/views/404.html'));
+});
 
 // SOCKET.IO
 
@@ -118,7 +119,7 @@ io.on('connection', (socket) => {
 
         try {
             let document = await client.collection(msg.topic).findOne({'header.seq' : msg.seq});
-            callback(IMAGE.create_image_buffer(document).toString('base64'));
+            callback(IMAGE.create_image_buffer(document));
         } catch (e) {
             console.error(e);
             callback(`error on encoding image`);
