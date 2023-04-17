@@ -2,13 +2,10 @@
 var WIDTH = 640;
 var HEIGHT = 480;
 
-let scaleX;
-let scaleY;
-
 var stage = new Konva.Stage({
     container: 'container',
-    width: 640,
-    height: 480,
+    width: div_container.clientWidth,
+    height: div_container.clientHeight,
 });
 
 // Create layer
@@ -41,10 +38,10 @@ stage.on('mousedown touchstart', (e) => {
 
     e.evt.preventDefault();
 
-    x1 = stage.getPointerPosition().x;
-    y1 = stage.getPointerPosition().y;
-    x2 = stage.getPointerPosition().x;
-    y2 = stage.getPointerPosition().y;
+    x1 = stage.getRelativePointerPosition().x;
+    y1 = stage.getRelativePointerPosition().y;
+    x2 = stage.getRelativePointerPosition().x;
+    y2 = stage.getRelativePointerPosition().y;
 
     selectionRectangle.visible(true);
     selectionRectangle.width(0);
@@ -60,14 +57,14 @@ stage.on('mousemove touchmove', (e) => {
     
     e.evt.preventDefault();
 
-    x2 = stage.getPointerPosition().x;
-    y2 = stage.getPointerPosition().y;
+    x2 = stage.getRelativePointerPosition().x;
+    y2 = stage.getRelativePointerPosition().y;
 
     selectionRectangle.setAttrs({
         x: Math.min(x1, x2),
         y: Math.min(y1, y2),
         width: Math.abs(x2 - x1),
-        height: Math.abs(y2 - y1),
+        height: Math.abs(y2 - y1)
     });
 });
 
@@ -127,10 +124,10 @@ stage.on('mouseup touchend', (e) => {
 
         rect.on('transformend', () => {
             rect.setAttrs({
-                'width' : rect.width() * rect.scaleX(),
-                'height' : rect.height() * rect.scaleY(),
-                'scaleX' : 1,
-                'scaleY' : 1,
+                width : rect.width() * rect.scaleX(),
+                height : rect.height() * rect.scaleY(),
+                scaleX : 1,
+                scaleY : 1
             });
             add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()})
         });
@@ -209,8 +206,8 @@ function remove_local_bounding_box() {
 
 // Resize canvas and bounding box
 function fitStageIntoContainer() {
-    scaleX = div_container.clientWidth / WIDTH;
-    scaleY = div_container.clientHeight / HEIGHT;
+    let scaleX = div_container.clientWidth / WIDTH;
+    let scaleY = div_container.clientHeight / HEIGHT;
 
     stage.width(div_container.clientWidth);
     stage.height(div_container.clientHeight);
