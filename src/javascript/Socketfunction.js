@@ -45,10 +45,9 @@ function get_image(msg, mode) {
         // If res is null, the image does not exist
         if (res == null) {
             // If mode è P, then inc the sequence number, otherwise dec
-            if (mode == 'P') {
-                remove_local_bounding_box();
+            if (mode == 'P') 
                 image_sequence++;
-            } else if (mode == 'N')
+            else if (mode == 'N')
                 image_sequence--;   
             return;
         }
@@ -58,7 +57,6 @@ function get_image(msg, mode) {
             console.log(res);
             return;
         }
-
         load_background_image(res);
         get_bounding_box({topic: select_topic.value, image: image_sequence});
     });
@@ -114,12 +112,15 @@ function get_bounding_box(msg) {
             });
         }
 
+        if (res == null) 
+            return;
+
         res.forEach(node => {
             // Create a new rect when loaded from nodejs and add function for resizing
-            let rect = new Konva.Rect(node);
+            let rect = new Konva.Rect(node.bounding_box);
 
             rect.on('transformend', () => {
-
+                // For removing the scaling of rect and set the correct width and height
                 rect.setAttrs({
                     width : rect.width() * rect.scaleX(),
                     height : rect.height() * rect.scaleY(),

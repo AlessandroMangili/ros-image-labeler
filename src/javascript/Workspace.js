@@ -30,7 +30,7 @@ $('#workspace').ready((e) => {
 
 // Scroll through images back and forth
 $('#workspace').on('keydown', (e) => {
-    if (e.keyCode == 188 && image_sequence > 0) { // ; prev
+    if (e.keyCode == 188 && image_sequence > 0) { // , prev
         get_image({topic : select_topic.value, seq : --image_sequence}, 'P');
     } else if (e.keyCode == 190) { // . next
         get_image({topic : select_topic.value, seq : ++image_sequence}, 'N');

@@ -123,6 +123,7 @@ stage.on('mouseup touchend', (e) => {
         rect.id(rect._id);
 
         rect.on('transformend', () => {
+            // For removing the scaling of rect and set the correct width and height
             rect.setAttrs({
                 width : rect.width() * rect.scaleX(),
                 height : rect.height() * rect.scaleY(),
