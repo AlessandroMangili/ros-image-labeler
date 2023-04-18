@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const fs = require('fs');
 const PATH = require('path');
+const cv = require('opencv4nodejs');
 
 // JS file import
 const IMAGE = require(PATH.join(__dirname, 'javascript/Imagefunction'));
@@ -19,6 +20,8 @@ const port = process.env.PORT || 8000;
 const classes = [];
 const sub_classes = {};
 const bounding_box = {};
+
+var last_image_seq = 0;
 
 // contains the connection with the mongodb local instance 
 var client;
@@ -106,6 +109,7 @@ io.on('connection', (socket) => {
 
         try {
             let result = await MONGO.get_first_seq(client, msg);
+            last_image_seq = result;
             callback(result);
         } catch (e) {
             callback(`error : ${e}`);
@@ -119,6 +123,11 @@ io.on('connection', (socket) => {
 
         try {
             let document = await client.collection(msg.topic).findOne({'header.seq' : msg.seq});
+            
+            if (Object.keys(bounding_box).length != 0 && document != null) 
+                IMAGE.save_bounding_image(IMAGE.create_image_buffer(document), bounding_box[msg.topic][last_image_seq]);
+            
+            last_image_seq = msg.seq;
             callback(IMAGE.create_image_buffer(document));
         } catch (e) {
             console.error(e);
@@ -172,30 +181,29 @@ io.on('connection', (socket) => {
     });
 
     // Add a specific bounding box
-    socket.on('add bounding_box', async (msg) => {
-
-        try {
-            let document = await client.collection(msg.topic).findOne({'header.seq' : msg.image});
-            //console.log(msg.rect);
-            IMAGE.save_bounding_image(IMAGE.create_image_buffer(document), msg.rect.attrs);
-        } catch (e) {
-            console.error(e);
-        }
-        
+    socket.on('add bounding_box', async (msg) => {       
         bounding_box[msg.topic] = bounding_box[msg.topic] || {};
         bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
+
+        let obj = {
+            'bounding_box' : msg.rect,
+            'rect' : new cv.Rect(msg.rect.attrs.x, msg.rect.attrs.y, msg.rect.attrs.width, msg.rect.attrs.height), 
+            'color' : IMAGE.hex_to_rgb(msg.rect.attrs.stroke)
+        };
 
         try {
             let index = 0;
             bounding_box[msg.topic][msg.image].forEach(rect => {
-                if (rect.attrs.id == msg.rect.attrs.id)
+                if (rect.bounding_box.attrs.id == obj.bounding_box.attrs.id)
                     throw index;
                 index++;
             });
-            bounding_box[msg.topic][msg.image].push(msg.rect);
+            bounding_box[msg.topic][msg.image].push(obj);
         } catch (e) {
-            bounding_box[msg.topic][msg.image][e] = msg.rect;
+            bounding_box[msg.topic][msg.image][e] = obj;
         }
+
+        last_image_seq = msg.image;
     });
 
     // Send all classes
@@ -249,7 +257,7 @@ io.on('connection', (socket) => {
         try {
             let index = 0;
             bounding_box[msg.topic][msg.image].forEach(e => {
-                if (JSON.stringify(msg.rect) === JSON.stringify(e))
+                if (JSON.stringify(msg.rect) === JSON.stringify(e.bounding_box))
                     throw index;
                 index++;
             });
@@ -265,10 +273,11 @@ io.on('connection', (socket) => {
 function remove_bounding_box_by_class(class_name) {
     Object.keys(bounding_box).forEach((topic, _) => {
         Object.keys(bounding_box[topic]).forEach(image => {
-            bounding_box[topic][image].forEach((rect, index) => {
-                if (rect.attrs.name === class_name)
-                    delete bounding_box[topic][image][index];
-            });
+            bounding_box[topic][image] = Object.values(
+                Object.fromEntries(
+                    Object.entries(bounding_box[topic][image]).filter(([key, val]) => val.bounding_box.attrs.name !== class_name)
+                )
+            );
         });
     });
 }

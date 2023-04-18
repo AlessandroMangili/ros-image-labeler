@@ -33,7 +33,7 @@ function get_first_image(msg) {
             return;
         }
 
-        image_sequence = res;
+        image_sequence = first = res;
 
         get_image({topic: msg, seq : image_sequence});
     });
@@ -45,10 +45,9 @@ function get_image(msg, mode) {
         // If res is null, the image does not exist
         if (res == null) {
             // If mode è P, then inc the sequence number, otherwise dec
-            if (mode == 'P') {
-                remove_local_bounding_box();
+            if (mode == 'P') 
                 image_sequence++;
-            } else if (mode == 'N')
+            else if (mode == 'N')
                 image_sequence--;   
             return;
         }
@@ -58,9 +57,8 @@ function get_image(msg, mode) {
             console.log(res);
             return;
         }
-
+        
         load_background_image(res);
-        get_bounding_box({topic: select_topic.value, image: image_sequence});
     });
 }
 
@@ -103,23 +101,15 @@ function get_sub_classes(msg) {
 // Get all bounding bounding box of an image by topic and image sequence
 function get_bounding_box(msg) {
     socket.emit('get bounding_box', msg, (res) => {
-        if (!local_bounding.checked)
-            remove_local_bounding_box();
-        else {
-            // If checked, save all local bounding box
-            layer.getChildren(node => {return node._id > 14;}).forEach(rect => {
-                var node = rect.clone();
-                node.id(node._id);
-                add_bounding_box({topic: select_topic.value, image: image_sequence, rect: node.toObject()});
-            });
-        }
+        if (res == null) 
+            return;
 
         res.forEach(node => {
             // Create a new rect when loaded from nodejs and add function for resizing
-            let rect = new Konva.Rect(node);
+            let rect = new Konva.Rect(node.bounding_box);
 
             rect.on('transformend', () => {
-
+                // For removing the scaling of rect and set the correct width and height
                 rect.setAttrs({
                     width : rect.width() * rect.scaleX(),
                     height : rect.height() * rect.scaleY(),
@@ -128,7 +118,6 @@ function get_bounding_box(msg) {
                 });
                 add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()})
             });
-
             layer.add(rect);
         });
     });

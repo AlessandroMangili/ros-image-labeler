@@ -10,6 +10,9 @@ var sub_class_name = '';    // Save the current id of the selected sub_class
 var color_pick = '';        // Save the current color of the selected class
 var image_sequence;         // Keep the actual image sequence
 
+var first = 0;
+var last = 10000;
+
 // Show popup when the button is clicked
 document.getElementById('add_class').addEventListener('click', (e) => {
     $('#class_dialog').dialog('open');
@@ -30,10 +33,25 @@ $('#workspace').ready((e) => {
 
 // Scroll through images back and forth
 $('#workspace').on('keydown', (e) => {
-    if (e.keyCode == 188 && image_sequence > 0) { // ; prev
+    if (e.keyCode == 188 && image_sequence > first) { // , prev
         get_image({topic : select_topic.value, seq : --image_sequence}, 'P');
-    } else if (e.keyCode == 190) { // . next
+        remove_local_bounding_box();
+        get_bounding_box({topic: select_topic.value, image: image_sequence});
+    } else if (e.keyCode == 190 && image_sequence < last) { // . next
         get_image({topic : select_topic.value, seq : ++image_sequence}, 'N');
+
+        if (!local_bounding.checked)
+            remove_local_bounding_box();
+        else {
+            // If checked, save all local bounding box
+            layer.getChildren(node => {return node._id > 14;}).forEach(rect => {
+                var node = rect.clone();
+                node.id(node._id);
+                add_bounding_box({topic: select_topic.value, image: image_sequence, rect: node.toObject()});
+            });
+        }
+        
+        get_bounding_box({topic: select_topic.value, image: image_sequence});
     }
 });
 
