@@ -62,9 +62,6 @@ function create_class(msg) {
     node.className = 'list-group-item list-group-item-action';
     node.title = msg.color;
     node.style.color = msg.color;
-    node.style.borderStyle = 'solid';
-    node.style.borderWidth = 'medium';
-    node.style.borderColor = 'white';
 
     node.addEventListener('click', (e) => {
         // Deselect if already selected
@@ -107,10 +104,7 @@ function create_sub_class(sub_name) {
     var node = document.createElement('a');
     node.innerHTML = sub_name;
     node.className = 'list-group-item list-group-item-action';
-    node.style.borderStyle = 'solid';
-    node.style.borderWidth = 'medium';
-    node.style.borderColor = 'white';
-
+    
     node.addEventListener('click', (e) => {
         // Deselect if already selected
         if (e.target.innerHTML == sub_class_name) {

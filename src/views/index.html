@@ -3,6 +3,9 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!-- Bootstrap -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
         <!-- Socker.io -->
         <script type="text/javascript" src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
         <link type="text/css" rel="stylesheet" href="/stylesheets/style.css">
@@ -10,15 +13,15 @@
     </head>
     <body id="pageIndex">
         <div class="row">
-            <div class="column">
-                <input type="file" id="input_bag" accept=".bag" /><br>
-                <input type="submit" value="extract" id="submit" />
+            <div class="col-6" id="leftCol">
+                <input type="file" class="form-control" id="input_bag" accept=".bag">
+                <button type="button" class="btn btn-primary btn-sm" id="upload">Upload</button>
             </div>
-            <div class="column">
-                <label>Seleziona una delle collection da labellare: </label>
-                <select id="db">
-                    <option value="null"></option>
+            <div class="col-6 " id="rightCol">
+                <select class="form-select" id="db">
+                    <option value="null" selected></option>
                 </select>
+                <label>Select a dataset</label>
             </div>
         </div>
 
@@ -36,7 +39,7 @@
                     load_db(e.currentTarget.value);
             });
 
-            document.getElementById('submit').addEventListener('click', e => {
+            document.getElementById('upload').addEventListener('click', e => {
                 e.preventDefault();
 
                 if (bag.value != "" && bag.files[0].name.split('.')[1] == "bag")

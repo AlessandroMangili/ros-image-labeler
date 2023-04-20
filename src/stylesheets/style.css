@@ -1,3 +1,4 @@
+/* INDEX PAGE */
 #pageIndex { 
     height: 100vh;
     font-size: 16px;
@@ -5,8 +6,45 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: center;    
+    align-items: center; 
 }
+
+#db {
+    text-align: center;
+}
+
+#upload {
+    width: 50%;
+}
+
+.row {
+    text-align: center;
+    width: 70%;
+}
+
+#input_bag, #db {
+    margin-bottom: 5%;
+}
+
+@media only screen and (max-width: 1000px) {
+    .row {
+        width: 80%;
+    }
+}
+
+@media only screen and (max-width: 790px) {
+    .row {
+        width: 90%;
+    }
+}
+
+@media only screen and (max-width: 629px) {
+    .row {
+        width: 100%;
+    }
+}
+
+/* LABEL PAGE */
 
 #container {
     position:fixed;
@@ -16,41 +54,83 @@
     background-size: 100% 100%;
     display: block;
     z-index: 0;
-    top : 30%;
+    top : 25%;
     left : 25%;
 }
 
 #sidebar-right {
     width:20%;
     right:0;
-    background: #37474F;
+    background: #2a2a2a;
     color: #fff;
 }
 
 #sidebar-left {
     width: 20%;
-    background: #37474F;
+    background: #2a2a2a;
     color: #fff;
+}
+
+#topics {
+    width: 50%;
+    margin: 0 auto;
+    text-align: center;
+}
+
+#keep_bounding, #sub_classes {
+    float: none;
+}
+
+#sub_classes {
+    position: relative;
+    line-height: 52px;
+}
+
+.col{
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.container {
+    width: 55%;
+    align-items: center;
+    text-align:center;
+}
+
+.list-group-item {
+    border-style: solid;
+    border-width: medium;
+    border-color: white;
+    text-align: center;
 }
 
 header {
     color: #fff;
-    display: block;
-    background-color: #263238;
-    line-height: 52px;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #212121;
+    height: 70px;
     text-decoration: none;
 }
 
-.row {
-    text-align: center;
+@media only screen and (max-width: 830px) {
+    #topics {
+        width: 65%;
+    }
 }
 
-.column {
-    float:left;
-    width: 50%;
+@media only screen and (max-width: 600px) {
+    #topics {
+        width: 75%;
+    }
 }
 
+@media only screen and (max-width: 530px) {
+    #topics {
+        width: 90%;
+    }
+}
 
 /* 404 PAGE */
 
@@ -149,8 +229,6 @@ header {
 
 /* 403 PAGE */
 
-@import url("https://fonts.googleapis.com/css?family=Lato");
-
 #page403 {
     height: 100vh;
     display: flex;
@@ -158,18 +236,56 @@ header {
     justify-content: center;
     align-items: center;
     text-align: center;
-    background: linear-gradient(to bottom right, #EEE, #AAA);
+    background-color: #222;
 }
 
-#message {
-    text-align: center;
+.message {
+    width: 50%;
+}
+
+.message p {
+    font-family: 'Josefin Sans', sans-serif;
+    color: #c9c9c9;
+    font-size: 16px;
+    font-weight: 400;
+    margin-top: 0px;
+    margin-bottom: 15px;
+}
+
+.message h1 {
+    font-family: 'Josefin Sans', sans-serif;
+    color: #c9c9c9;
+    font-size: 30px;
+    margin-top: 5px;
+    margin-bottom: 0px;
+
+}
+
+.message a {
+    font-family: 'Josefin Sans', sans-serif;
+    font-size: 14px;
+    text-decoration: none;
+    text-transform: uppercase;
+    background: transparent;
+    color: #c9c9c9;
+    border: 2px solid #c9c9c9;
+    display: inline-block;
+    padding: 10px 25px;
+    font-weight: 700;
+    -webkit-transition: 0.2s all;
+    transition: 0.2s all;
+}
+
+.message a:hover {
+    color: #ffab00;
+    border-color: #ffab00;
 }
 
 .lock {
     border-radius: 5px;
     width: 55px;
     height: 45px;
-    background-color: #333;
+    background-color: #ffab00;
     animation: dip 1s;
     animation-delay: 1.5s;
 }
@@ -177,7 +293,7 @@ header {
 .lock::before, .lock::after {
     content: "";
     position: absolute;
-    border-left: 5px solid #333;
+    border-left: 5px solid #ffab00;
     height: 20px;
     width: 15px;
     left: calc(50% - 12.5px);
@@ -185,7 +301,7 @@ header {
 
 .lock::before {
     top: -30px;
-    border: 5px solid #333;
+    border: 5px solid #ffab00;
     border-bottom-color: transparent;
     border-radius: 15px 15px 0 0;
     height: 30px;
