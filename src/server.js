@@ -125,9 +125,11 @@ io.on('connection', (socket) => {
         try {
             let document = await client.collection(msg.topic).findOne({'header.seq' : msg.seq});
             
+            /*
             if (Object.keys(bounding_box).length != 0 && document != null) 
                 IMAGE.save_bounding_image(IMAGE.create_image_buffer(document), bounding_box[msg.topic][last_image_seq]);
-            
+            */
+           
             last_image_seq = msg.seq;
             callback(IMAGE.create_image_buffer(document));
         } catch (e) {

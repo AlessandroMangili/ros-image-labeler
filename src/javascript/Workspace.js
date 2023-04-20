@@ -41,17 +41,18 @@ $('#workspace').on('keydown', (e) => {
     } else if (e.keyCode == 190 && image_sequence < last) { // . next
         get_image({topic : select_topic.value, seq : ++image_sequence}, 'N');
 
-        if (!local_bounding.checked)
-            remove_local_bounding_box();
-        else {
+        let bx_save = layer.getChildren(node => {return node._id > 14;});
+        remove_local_bounding_box();
+        
+        if (local_bounding.checked) {
             // If checked, save all local bounding box
-            layer.getChildren(node => {return node._id > 14;}).forEach(rect => {
+            bx_save.forEach(rect => {
                 var node = rect.clone();
                 node.id(node._id);
                 add_bounding_box({topic: select_topic.value, image: image_sequence, rect: node.toObject()});
             });
         }
-        
+
         get_bounding_box({topic: select_topic.value, image: image_sequence});
         tr.nodes([]);
     }
