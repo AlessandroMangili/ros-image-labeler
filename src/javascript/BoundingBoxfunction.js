@@ -2,6 +2,8 @@
 var WIDTH = 640;
 var HEIGHT = 480;
 
+let update_rect;
+
 var stage = new Konva.Stage({
     container: 'container',
     width: div_container.clientWidth,
@@ -69,13 +71,6 @@ stage.on('mousemove touchmove', (e) => {
 });
 
 stage.on('mouseup touchend', (e) => {
-    // Check if the target is a bounding box, then save the changes
-    if (e.target._id > 14) {
-        console.log(tr.nodes());
-        // MANCA DA SPOSTARE UNA SELEZIONE DI PIÙ BOUNDING BOX
-        add_bounding_box({topic: select_topic.value, image: image_sequence, rect: e.target.toObject()});
-    }
-
     // do nothing if we didn't start selection
     if (!selectionRectangle.visible())
         return;
@@ -89,6 +84,7 @@ stage.on('mouseup touchend', (e) => {
     var shapes = stage.find(node => {
         return node._id > 14;
     });
+    
     var box = selectionRectangle.getClientRect();
     if (box.width != 0 && box.height != 0) {
         var selected = shapes.filter((shape) =>
@@ -118,10 +114,32 @@ stage.on('mouseup touchend', (e) => {
             strokeWidth: 3,
             draggable: true,
         });
-        layer.add(rect);
-        // Add id to each individual rect
-        rect.id(rect._id);
 
+        let text = new Konva.Text({
+            x: selectionRectangle.attrs.x,
+            y: selectionRectangle.attrs.y,
+            text: class_name,
+            width: selectionRectangle.attrs.width,
+            fontSize: 14,
+            align: 'center',
+            draggable : false,
+        });
+
+        // On trasform start, get the position of the rect
+        rect.on('transformstart', (e) => {
+            update_rect = {
+                bounding_box : {
+                    attrs : {
+                        x : e.currentTarget.getPosition().x,
+                        y : e.currentTarget.getPosition().y,
+                        width : e.currentTarget.width(),
+                        height : e.currentTarget.height(),
+                    }
+                }
+            };
+        })
+
+        // On trasform end, update the position of the rect into the server
         rect.on('transformend', () => {
             // For removing the scaling of rect and set the correct width and height
             rect.setAttrs({
@@ -130,8 +148,41 @@ stage.on('mouseup touchend', (e) => {
                 scaleX : 1,
                 scaleY : 1
             });
-            add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()})
+            
+            text.setAttrs({
+                x : rect.x(),
+                y : rect.y(),
+                width : rect.width(),
+            });
+            update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : rect.toObject()});
         });
+
+        // On drag start, get the position of the rect
+        rect.on('dragstart', (e) => {
+            update_rect = {
+                bounding_box : {
+                    attrs : {
+                        x : e.currentTarget.getPosition().x,
+                        y : e.currentTarget.getPosition().y,
+                        width : e.currentTarget.width(),
+                        height : e.currentTarget.height(),
+                    }
+                }
+            };
+        });
+
+        // On drag end, update the position of the rect into the server
+        rect.on('dragend', () => {
+            text.setAttrs({
+                x : rect.x(),
+                y : rect.y(),
+                width : rect.width(),
+            });
+            update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : rect.toObject()});
+        });
+
+        layer.add(rect);
+        layer.add(text);
 
         add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()});
         wantDraw = false;
@@ -146,8 +197,16 @@ stage.on('mouseup touchend', (e) => {
             $('#sub_class_dialog').dialog('open');
         } else {
             console.log(sub_class_name);
-        }            
+        }          
     }
+
+    // For deselect Text class
+    let nodes = [];
+    tr.nodes().forEach(node => {
+        if (node.className !== 'Text')
+            nodes.push(node);
+    });
+    tr.nodes(nodes);
 });
 
 // clicks should select/deselect shapes
@@ -161,6 +220,9 @@ stage.on('click', (e) => {
         tr.nodes([]);
         return;
     }
+
+    if (e.target.className === 'Text')
+        return;
 
     const metaPressed = e.evt.shiftKey || e.evt.ctrlKey || e.evt.metaKey;
     const isSelected = tr.nodes().indexOf(e.target) >= 0;
@@ -187,7 +249,18 @@ stage.on('click', (e) => {
 container.addEventListener('keydown', (e) => {
     if (e.keyCode == 46) {
         tr.nodes().forEach(node => {
+
+            // Select the Text class associated with the rect
+            let remove = layer.getChildren(text => {
+                return text._id > 14 && text.attrs.x == node.attrs.x && text.attrs.y == node.attrs.y && node._id != text._id;
+            });
+
+            remove.forEach(text => {
+                text.remove();
+            });
+
             node.remove();
+
             remove_bounding_box({topic: select_topic.value, image: image_sequence, rect: node.toObject()})
         });
         tr.nodes([]);

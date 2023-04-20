@@ -13,7 +13,6 @@ function get_all_topics() {
         }
 
         fill_topics(res);
-
         get_first_image(select_topic.value);
     });
 }
@@ -36,6 +35,7 @@ function get_first_image(msg) {
         image_sequence = first = res;
 
         get_image({topic: msg, seq : image_sequence});
+        get_bounding_box({topic: select_topic.value, image: image_sequence});
     });
 }
 
@@ -104,10 +104,48 @@ function get_bounding_box(msg) {
         if (res == null) 
             return;
 
+        let update_rect;
+
+        // Get all bounding box saved on the server
         res.forEach(node => {
             // Create a new rect when loaded from nodejs and add function for resizing
-            let rect = new Konva.Rect(node.bounding_box);
+            let rect = new Konva.Rect({
+                x: node.bounding_box.attrs.x,
+                y: node.bounding_box.attrs.y,
+                width: node.bounding_box.attrs.width,
+                height: node.bounding_box.attrs.height,
+                name: node.bounding_box.attrs.name,
+                stroke: node.bounding_box.attrs.stroke,
+                strokeWidth: 3,
+                draggable: true,
+            });
 
+            let text = new Konva.Text({
+                x: rect.x(),
+                y: rect.y(),
+                text: rect.attrs.name,
+                width: rect.width(),
+                fontSize: 14,
+                align: 'center',
+                fontFamily: 'Lato',
+                draggable : false,
+            });
+
+            // On trasform start, get the position of the rect
+            rect.on('transformstart', (e) => {
+                update_rect = {
+                    bounding_box : {
+                        attrs : {
+                            x : e.currentTarget.getPosition().x,
+                            y : e.currentTarget.getPosition().y,
+                            width : e.currentTarget.width(),
+                            height : e.currentTarget.height(),
+                        }
+                    }
+                };
+            })
+
+            // On trasform end, update the position of the rect into the server
             rect.on('transformend', () => {
                 // For removing the scaling of rect and set the correct width and height
                 rect.setAttrs({
@@ -116,9 +154,41 @@ function get_bounding_box(msg) {
                     scaleX : 1,
                     scaleY : 1
                 });
-                add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()})
+
+                text.setAttrs({
+                    x : rect.x(),
+                    y : rect.y(),
+                    width : rect.width(),
+                });
+                update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : rect.toObject()});
             });
+
+            // On drag start, get the position of the rect
+            rect.on('dragstart', (e) => {
+                update_rect = {
+                    bounding_box : {
+                        attrs : {
+                            x : e.currentTarget.getPosition().x,
+                            y : e.currentTarget.getPosition().y,
+                            width : e.currentTarget.width(),
+                            height : e.currentTarget.height(),
+                        }
+                    }
+                };
+            });
+
+            // On drag end, update the position of the rect into the server
+            rect.on('dragend', () => {
+                text.setAttrs({
+                    x : rect.x(),
+                    y : rect.y(),
+                    width : rect.width(),
+                });
+                update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : rect.toObject()});
+            })
+            
             layer.add(rect);
+            layer.add(text);
         });
     });
 }
@@ -136,6 +206,14 @@ function remove_sub_class(msg) {
 // Remove bounding box from the rect
 function remove_bounding_box(msg) {
     socket.emit('remove bounding_box', msg);
+}
+
+// Update a specific bounding box on drag or resize
+function update_bounding_box(msg) {
+    socket.emit('update bounding_box', msg, (res) => {
+        if (res.indexOf('error') >= 0)
+            console.error('error on resize or drag bounding box');
+    });
 }
 
 // INDEX

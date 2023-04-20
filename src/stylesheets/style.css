@@ -98,8 +98,7 @@
 }
 
 .list-group-item {
-    border-style: solid;
-    border-width: medium;
+    border: solid;
     border-color: white;
     text-align: center;
 }

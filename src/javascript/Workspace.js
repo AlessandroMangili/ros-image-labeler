@@ -37,6 +37,7 @@ $('#workspace').on('keydown', (e) => {
         get_image({topic : select_topic.value, seq : --image_sequence}, 'P');
         remove_local_bounding_box();
         get_bounding_box({topic: select_topic.value, image: image_sequence});
+        tr.nodes([]);
     } else if (e.keyCode == 190 && image_sequence < last) { // . next
         get_image({topic : select_topic.value, seq : ++image_sequence}, 'N');
 
@@ -52,6 +53,7 @@ $('#workspace').on('keydown', (e) => {
         }
         
         get_bounding_box({topic: select_topic.value, image: image_sequence});
+        tr.nodes([]);
     }
 });
 
@@ -62,6 +64,7 @@ function create_class(msg) {
     node.className = 'list-group-item list-group-item-action';
     node.title = msg.color;
     node.style.color = msg.color;
+    node.style.borderWidth = 'medium';
 
     node.addEventListener('click', (e) => {
         // Deselect if already selected
@@ -104,6 +107,7 @@ function create_sub_class(sub_name) {
     var node = document.createElement('a');
     node.innerHTML = sub_name;
     node.className = 'list-group-item list-group-item-action';
+    node.style.borderWidth = 'medium';
     
     node.addEventListener('click', (e) => {
         // Deselect if already selected

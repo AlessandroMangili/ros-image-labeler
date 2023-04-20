@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const fs = require('fs');
 const PATH = require('path');
 const cv = require('opencv4nodejs');
+const { error } = require('console');
 
 // JS file import
 const IMAGE = require(PATH.join(__dirname, 'javascript/Imagefunction'));
@@ -194,7 +195,7 @@ io.on('connection', (socket) => {
         try {
             let index = 0;
             bounding_box[msg.topic][msg.image].forEach(rect => {
-                if (rect.bounding_box.attrs.id == obj.bounding_box.attrs.id)
+                if (is_equal(rect, obj))
                     throw index;
                 index++;
             });
@@ -265,9 +266,37 @@ io.on('connection', (socket) => {
             bounding_box[msg.topic][msg.image].splice(e, 1);
         }
     });
+
+    // Update a specific bounding box on drag or resize
+    socket.on('update bounding_box', (msg, callback) => {
+        let obj = {
+            'bounding_box' : msg.newrect,
+            'rect' : new cv.Rect(msg.newrect.attrs.x, msg.newrect.attrs.y, msg.newrect.attrs.width, msg.newrect.attrs.height), 
+            'color' : IMAGE.hex_to_rgb(msg.newrect.attrs.stroke)
+        };
+
+        try {
+            let index = 0;
+            bounding_box[msg.topic][msg.image].forEach(e => {
+                if (is_equal(e, msg.oldrect))
+                    throw index;
+                index++;
+            });
+            callback('error');
+        } catch (e) {
+            bounding_box[msg.topic][msg.image][e] = obj;
+        }
+    });
 });
 
 // FUNCTION
+
+function is_equal(rect1, rect2) {
+    return rect1.bounding_box.attrs.x === rect2.bounding_box.attrs.x
+    && rect1.bounding_box.attrs.y === rect2.bounding_box.attrs.y
+    && rect1.bounding_box.attrs.width === rect2.bounding_box.attrs.width
+    && rect1.bounding_box.attrs.height === rect2.bounding_box.attrs.height;
+}
 
 // Remove all bounding box of a class
 function remove_bounding_box_by_class(class_name) {
