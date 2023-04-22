@@ -13,26 +13,26 @@ function get_all_topics() {
         }
 
         fill_topics(res);
-        get_first_image(select_topic.value);
+        get_first_last_seq(select_topic.value);
     });
 }
 
 // Get the first sequence number of the topic
-function get_first_image(msg) {
-    socket.emit('get first_seq', msg, (res) => {
-
+function get_first_last_seq(msg) {
+    socket.emit('get first_last_seq', msg, (res) => {
         if (String(res).indexOf('error') >= 0) {
             alert(res);
             window.location.href = '/';
             return;
         }
         
-        if (image_sequence < 0) {
+        if (res.first < 0) {
             alert('Si è verificato un errore');
             return;
         }
 
-        image_sequence = first = res;
+        image_sequence = first = res.first;
+        last = res.last
 
         get_image({topic: msg, seq : image_sequence});
         get_bounding_box({topic: select_topic.value, image: image_sequence});

@@ -13,11 +13,11 @@ module.exports = {
         }
     },
 
-    get_first_seq : async function(client, topic) {
+    get_first_last_seq : async function(client, topic) {
         let documents = await client.collection(topic).find().toArray();
 
         if (documents.length == 0)
             return -1;
-        return documents[0].header.seq;
+        return {first: documents[0].header.seq, last : documents[documents.length - 1].header.seq};
     }
 }

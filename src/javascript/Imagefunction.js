@@ -43,4 +43,3 @@ module.exports = {
         return new cv.Vec3(parseInt(hex_color.substring(4, 6), 16), parseInt(hex_color.substring(2, 4), 16), parseInt(hex_color.substring(0, 2), 16));
     }
 }
-

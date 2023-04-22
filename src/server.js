@@ -4,7 +4,6 @@ const { Server } = require('socket.io');
 const fs = require('fs');
 const PATH = require('path');
 const cv = require('opencv4nodejs');
-const { error } = require('console');
 
 // JS file import
 const IMAGE = require(PATH.join(__dirname, 'javascript/Imagefunction'));
@@ -104,13 +103,13 @@ io.on('connection', (socket) => {
     });
 
     // Send the first sequence number of that topic
-    socket.on('get first_seq', async (msg, callback) => {
+    socket.on('get first_last_seq', async (msg, callback) => {
         if (client == null)
             return
 
         try {
-            let result = await MONGO.get_first_seq(client, msg);
-            last_image_seq = result;
+            let result = await MONGO.get_first_last_seq(client, msg);
+            last_image_seq = result.first;
             callback(result);
         } catch (e) {
             callback(`error : ${e}`);
@@ -125,7 +124,7 @@ io.on('connection', (socket) => {
         try {
             let document = await client.collection(msg.topic).findOne({'header.seq' : msg.seq});
             
-            /*
+            /* DA DECOMMENTARE PER SALVARE IMMAGINE 
             if (Object.keys(bounding_box).length != 0 && document != null) 
                 IMAGE.save_bounding_image(IMAGE.create_image_buffer(document), bounding_box[msg.topic][last_image_seq]);
             */

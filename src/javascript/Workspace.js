@@ -20,7 +20,7 @@ document.getElementById('add_class').addEventListener('click', (e) => {
 
 // Change the target when the topic is selected
 select_topic.addEventListener('change', (e) => {
-    get_first_image(e.currentTarget.value);
+    get_first_last_seq(e.currentTarget.value);
 
     get_bounding_box({topic: e.currentTarget.value, image: image_sequence});
 });
@@ -41,15 +41,13 @@ $('#workspace').on('keydown', (e) => {
     } else if (e.keyCode == 190 && image_sequence < last) { // . next
         get_image({topic : select_topic.value, seq : ++image_sequence}, 'N');
 
-        let bx_save = layer.getChildren(node => {return node._id > 14;});
+        let bx_save = layer.getChildren(node => {return node._id > 14 && node.className != 'Text';});
         remove_local_bounding_box();
         
         if (local_bounding.checked) {
             // If checked, save all local bounding box
             bx_save.forEach(rect => {
-                var node = rect.clone();
-                node.id(node._id);
-                add_bounding_box({topic: select_topic.value, image: image_sequence, rect: node.toObject()});
+                add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()});
             });
         }
 
