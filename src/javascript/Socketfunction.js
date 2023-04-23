@@ -1,5 +1,4 @@
 // SOCKET_IO section
-
 var socket = io();
 
 // Get get all topics of the selected local instance of mongodb and load the first image
@@ -146,21 +145,27 @@ function get_bounding_box(msg) {
             })
 
             // On trasform end, update the position of the rect into the server
-            rect.on('transformend', () => {
-                // For removing the scaling of rect and set the correct width and height
-                rect.setAttrs({
-                    width : rect.width() * rect.scaleX(),
-                    height : rect.height() * rect.scaleY(),
+            rect.on('transformend', (e) => {
+               // For removing the scaling of rect and set the correct width and height
+                e.currentTarget.setAttrs({
+                    width : e.currentTarget.width() * e.currentTarget.scaleX(),
+                    height : e.currentTarget.height() * e.currentTarget.scaleY(),
                     scaleX : 1,
                     scaleY : 1
                 });
 
-                text.setAttrs({
-                    x : rect.x(),
-                    y : rect.y(),
-                    width : rect.width(),
-                });
-                update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : rect.toObject()});
+                if (!is_out_border(e.currentTarget)) {               
+                    text.setAttrs({
+                        x : e.currentTarget.x(),
+                        y : e.currentTarget.y(),
+                        width : e.currentTarget.width(),
+                    });
+                    update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : e.currentTarget.toObject()});
+                } else {
+                    remove_local_bounding_box();
+                    get_bounding_box({topic: select_topic.value, image: image_sequence});
+                    tr.nodes([]);
+                }
             });
 
             // On drag start, get the position of the rect
@@ -178,14 +183,21 @@ function get_bounding_box(msg) {
             });
 
             // On drag end, update the position of the rect into the server
-            rect.on('dragend', () => {
-                text.setAttrs({
-                    x : rect.x(),
-                    y : rect.y(),
-                    width : rect.width(),
-                });
-                update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : rect.toObject()});
-            })
+            rect.on('dragend', (e) => {
+                if (!is_out_border(e.currentTarget)) {
+                    text.setAttrs({
+                        x : e.currentTarget.x(),
+                        y : e.currentTarget.y(),
+                        width : e.currentTarget.width(),
+                    });
+                    update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : e.currentTarget.toObject()});
+                } else {
+                    e.currentTarget.setAttrs({
+                        x: update_rect.bounding_box.attrs.x,
+                        y: update_rect.bounding_box.attrs.y,
+                    });
+                }
+            });
             
             layer.add(rect);
             layer.add(text);

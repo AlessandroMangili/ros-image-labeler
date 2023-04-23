@@ -2,6 +2,9 @@
 var WIDTH = 640;
 var HEIGHT = 480;
 
+let scaleX;
+let scaleY;
+
 let update_rect;
 
 var stage = new Konva.Stage({
@@ -140,21 +143,27 @@ stage.on('mouseup touchend', (e) => {
         })
 
         // On trasform end, update the position of the rect into the server
-        rect.on('transformend', () => {
+        rect.on('transformend', (e) => {
             // For removing the scaling of rect and set the correct width and height
-            rect.setAttrs({
-                width : rect.width() * rect.scaleX(),
-                height : rect.height() * rect.scaleY(),
+            e.currentTarget.setAttrs({
+                width : e.currentTarget.width() * e.currentTarget.scaleX(),
+                height : e.currentTarget.height() * e.currentTarget.scaleY(),
                 scaleX : 1,
                 scaleY : 1
             });
-            
-            text.setAttrs({
-                x : rect.x(),
-                y : rect.y(),
-                width : rect.width(),
-            });
-            update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : rect.toObject()});
+
+            if (!is_out_border(e.currentTarget)) {               
+                text.setAttrs({
+                    x : e.currentTarget.x(),
+                    y : e.currentTarget.y(),
+                    width : e.currentTarget.width(),
+                });
+                update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : e.currentTarget.toObject()});
+            } else {
+                remove_local_bounding_box();
+                get_bounding_box({topic: select_topic.value, image: image_sequence});
+                tr.nodes([]);
+            }
         });
 
         // On drag start, get the position of the rect
@@ -172,13 +181,20 @@ stage.on('mouseup touchend', (e) => {
         });
 
         // On drag end, update the position of the rect into the server
-        rect.on('dragend', () => {
-            text.setAttrs({
-                x : rect.x(),
-                y : rect.y(),
-                width : rect.width(),
-            });
-            update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : rect.toObject()});
+        rect.on('dragend', (e) => {
+            if (!is_out_border(e.currentTarget)) {
+                text.setAttrs({
+                    x : e.currentTarget.x(),
+                    y : e.currentTarget.y(),
+                    width : e.currentTarget.width(),
+                });
+                update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : e.currentTarget.toObject()});
+            } else {
+                e.currentTarget.setAttrs({
+                    x: update_rect.bounding_box.attrs.x,
+                    y: update_rect.bounding_box.attrs.y,
+                });
+            }
         });
 
         layer.add(rect);
@@ -278,10 +294,17 @@ function remove_local_bounding_box() {
     });
 }
 
+function is_out_border(rect) {
+    return rect.getAbsolutePosition().x < 0 
+    || rect.getAbsolutePosition().y < 0 
+    || (rect.getAbsolutePosition().x + rect.width() * scaleX) > div_container.clientWidth 
+    || (rect.getAbsolutePosition().y + rect.height()* scaleY) > div_container.clientHeight;
+}
+
 // Resize canvas and bounding box
 function fitStageIntoContainer() {
-    let scaleX = div_container.clientWidth / WIDTH;
-    let scaleY = div_container.clientHeight / HEIGHT;
+    scaleX = div_container.clientWidth / WIDTH;
+    scaleY = div_container.clientHeight / HEIGHT;
 
     stage.width(div_container.clientWidth);
     stage.height(div_container.clientHeight);
