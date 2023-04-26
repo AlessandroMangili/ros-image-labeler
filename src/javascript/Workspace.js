@@ -123,6 +123,11 @@ function create_sub_class(sub_name) {
     node.addEventListener('dblclick', (e) => {
         remove_sub_class({name : class_name, sub_name : sub_name});
         list_sub_class.removeChild(e.target);
+
+        remove_local_bounding_box();
+
+        get_bounding_box({topic: select_topic.value, image: image_sequence});
+
         sub_class_name = '';
     });
 

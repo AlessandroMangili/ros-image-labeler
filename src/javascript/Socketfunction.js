@@ -122,7 +122,7 @@ function get_bounding_box(msg) {
             let text = new Konva.Text({
                 x: rect.x(),
                 y: rect.y(),
-                text: rect.attrs.name,
+                text: `${rect.attrs.name.split('-')[0]} ${rect.attrs.name.split('-')[1]}`,
                 width: rect.width(),
                 fontSize: 14,
                 align: 'center',

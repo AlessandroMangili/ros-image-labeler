@@ -248,8 +248,11 @@ io.on('connection', (socket) => {
     // Remove sub-class
     socket.on('remove sub_class', (msg) => {
         let index = sub_classes[msg.name].indexOf(msg.sub_name);
-        if (index > -1)
+
+        if (index > -1) {
             sub_classes[msg.name].splice(index, 1);
+            remove_bounding_box_by_sub_class(msg.name, msg.sub_name);
+        }
     });    
 
     // Remove a specific bounding box
@@ -305,7 +308,20 @@ function remove_bounding_box_by_class(class_name) {
         Object.keys(bounding_box[topic]).forEach(image => {
             bounding_box[topic][image] = Object.values(
                 Object.fromEntries(
-                    Object.entries(bounding_box[topic][image]).filter(([key, val]) => val.bounding_box.attrs.name !== class_name)
+                    Object.entries(bounding_box[topic][image]).filter(([key, val]) => val.bounding_box.attrs.name.split('-')[0] !== class_name)
+                )
+            );
+        });
+    });
+}
+
+// Remove all bounding box of a sub-class
+function remove_bounding_box_by_sub_class(class_name, sub_class) {
+    Object.keys(bounding_box).forEach((topic, _) => {
+        Object.keys(bounding_box[topic]).forEach(image => {
+            bounding_box[topic][image] = Object.values(
+                Object.fromEntries(
+                    Object.entries(bounding_box[topic][image]).filter(([key, val]) => val.bounding_box.attrs.name.split('-')[0] !== class_name || (val.bounding_box.attrs.name.split('-')[0] === class_name && val.bounding_box.attrs.name.split('-')[1] !== sub_class))
                 )
             );
         });

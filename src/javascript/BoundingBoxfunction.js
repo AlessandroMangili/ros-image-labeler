@@ -112,7 +112,7 @@ stage.on('mouseup touchend', (e) => {
             y: selectionRectangle.attrs.y,
             width: selectionRectangle.attrs.width,
             height: selectionRectangle.attrs.height,
-            name: class_name,
+            name: `${class_name}-`,
             stroke: color_pick,
             strokeWidth: 3,
             draggable: true,
@@ -121,7 +121,7 @@ stage.on('mouseup touchend', (e) => {
         let text = new Konva.Text({
             x: selectionRectangle.attrs.x,
             y: selectionRectangle.attrs.y,
-            text: class_name,
+            text: `${class_name}`,
             width: selectionRectangle.attrs.width,
             fontSize: 14,
             align: 'center',
@@ -196,24 +196,43 @@ stage.on('mouseup touchend', (e) => {
                 });
             }
         });
-
+        
         layer.add(rect);
         layer.add(text);
 
-        add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()});
-        wantDraw = false;
+        if (checkbox.checked) {
+            if (sub_class_name === '') { 
+                // Popup for asking subclass name
+                $('#sub_class_dialog').dialog('open');
+                
+                $('#sub_class_dialog').dialog({
+                    beforeClose : () => {
+                        if (sname !== '') {
+                            rect.name(rect.name() + `${sname}`);
+                            text.text(text.text() + ` ${sname}`);
 
-        // If checkbox is not flagged, just return
-        if (!checkbox.checked)
-            return;
-        
-        // If a sub-class is already selected, so don't create a new sub-class
-        if (sub_class_name == '') {
-            // Popup for asking subclass name
-            $('#sub_class_dialog').dialog('open');
+                            sname = '';
+                            
+                            console.log(rect.attrs);
+                            add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()});
+                        } else {
+                            rect.remove();
+                            text.remove();
+                        }
+                    }
+                });
+            } else {
+                rect.name(rect.name() + `${sub_class_name}`);
+                text.text(text.text() + ` ${sub_class_name}`);
+                console.log(rect.attrs);
+                add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()});
+            }
         } else {
-            console.log(sub_class_name);
-        }          
+            console.log(rect.attrs);
+            add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()});
+        }
+
+        wantDraw = false;
     }
 
     // For deselect Text class
