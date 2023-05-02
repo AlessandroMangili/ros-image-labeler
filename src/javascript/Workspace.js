@@ -4,6 +4,7 @@ var list_sub_class = document.getElementById('sub_class_list');
 var div_container = document.getElementById('container');
 var select_topic = document.getElementById('topics');
 var local_bounding = document.getElementById('keep_bounding');
+var keeper_image_number = document.getElementById('image_sequence');
 
 var class_name = '';        // Save the current name of the selected class
 var sub_class_name = '';    // Save the current id of the selected sub_class
@@ -23,12 +24,15 @@ select_topic.addEventListener('change', (e) => {
     get_first_last_seq(e.currentTarget.value);
 
     get_bounding_box({topic: e.currentTarget.value, image: image_sequence});
+    keeper_image_number.innerText = `${0}/${last-first}`;
+    counter = 0;
 });
 
 // When you load the page, load the first image of that topic and get the saved classes and bounding box
 $('#workspace').ready((e) => {
     get_all_topics();
     get_classes();
+    counter = 0;
 });
 
 // Scroll through images back and forth
@@ -37,6 +41,7 @@ $('#workspace').on('keydown', (e) => {
         get_image({topic : select_topic.value, seq : --image_sequence}, 'P');
         remove_local_bounding_box();
         get_bounding_box({topic: select_topic.value, image: image_sequence});
+        keeper_image_number.innerText = `${image_sequence-first}/${last-first}`;
         tr.nodes([]);
     } else if (e.keyCode == 190 && image_sequence < last) { // . next
         get_image({topic : select_topic.value, seq : ++image_sequence}, 'N');
@@ -52,6 +57,7 @@ $('#workspace').on('keydown', (e) => {
         }
 
         get_bounding_box({topic: select_topic.value, image: image_sequence});
+        keeper_image_number.innerText = `${image_sequence-first}/${last-first}`;
         tr.nodes([]);
     }
 });

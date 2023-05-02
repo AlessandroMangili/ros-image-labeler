@@ -58,6 +58,16 @@
     left : 25%;
 }
 
+.col_image {
+    position: fixed;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    text-align:center;
+    align-items: center;
+    top: 90%;
+    left:50%;
+}
+
 #sidebar-right {
     width:20%;
     right:0;
@@ -86,7 +96,7 @@
     line-height: 52px;
 }
 
-.col{
+.col {
     padding-top: 10px;
     padding-bottom: 10px;
 }

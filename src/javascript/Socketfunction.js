@@ -33,6 +33,8 @@ function get_first_last_seq(msg) {
         image_sequence = first = res.first;
         last = res.last
 
+        keeper_image_number.innerText = `${0}/${last-first}`;
+
         get_image({topic: msg, seq : image_sequence});
         get_bounding_box({topic: select_topic.value, image: image_sequence});
     });
