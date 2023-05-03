@@ -17,9 +17,9 @@ const server = http.createServer(app);
 const io = new Server(server);
 const port = process.env.PORT || 8000;
 
-const classes = [];
-const sub_classes = {};
-const bounding_box = {};
+const classes = [];         // Contains all the declared classes
+const sub_classes = {};     // Contains all the declared sub-classes
+const bounding_box = {};    // Contains for each topics and for each images, the notes about bounding boxes
 
 var last_image_seq = 0;
 
@@ -50,7 +50,6 @@ app.get('/*', (req, res) => {
 // SOCKET.IO
 
 io.on('connection', (socket) => {
-
     // Create a new local instace from the bag file
     socket.on('save_bag', async (msg, callback) => {
         access_garanteed = false;
@@ -124,7 +123,8 @@ io.on('connection', (socket) => {
         try {
             let document = await client.collection(msg.topic).findOne({'header.seq' : msg.seq});
             
-            /* DA DECOMMENTARE PER SALVARE IMMAGINE 
+            // DA DECOMMENTARE PER SALVARE IMMAGINE 
+            /*
             if (Object.keys(bounding_box).length != 0 && document != null) 
                 IMAGE.save_bounding_image(IMAGE.create_image_buffer(document), bounding_box[msg.topic][last_image_seq]);
             */
