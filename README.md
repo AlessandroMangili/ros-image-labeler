@@ -15,16 +15,15 @@ Sui bounding box è possibile compiere operazioni di rotazione, traslazione e ri
 
 Una volta finito di labellare l'intero set di immagini, è possibile esportare il set di immagini labellate, salvate all'interno dell'istanza locale di MongoDB.
 
-## Dipendenze
+## Installazione
 
-- Ubuntu 20.04 (fortemente consigliata)
-- ROS noetic
-  - Pacchetto `ros-noetic-mongodb-store`
-- NodeJS versione dalla `14` a salire 
-  - `npm install opencv4nodejs`
-    - Per installare `opencv4nodejs`, bisogna prima avere __cmake__ e __git__ installati
-- `python-is-python3` (?)
-- `pip install pymongo==2.7` 
+Innanzitutto bisogna avere già installato docker sulla propria macchina per poter creare l'immagine ed eseguire il container dell'applicazione; in caso questo non sia ancora stato fatto, è possibile fare riferimento alla pagina relativa all'installazione [Docker](https://docs.docker.com/engine/install/). 
+
+Dopo aver installato docker sulla propria macchina, clonare la repository di questo branch per poi entrare all'interno del progetto tramite il comando `cd WebToolLabelImage`.
+
+Una volta finito di clonare la repository ed essere entrato all'interno del progetto, siamo pronti a creare l'immagine usando il comando `docker build -t app .`
+
+Una volta finita la creazione dell'immagine, usiamo il comando `docker run -it --net=host app bash` per avviare il container; appena questo è stato avviato, usare il comando `node src/server.js` per fare partire il server e poter iniziare a usare l'applicazione.
 
 ## Consigli
 
