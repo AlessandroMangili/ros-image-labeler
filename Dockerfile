@@ -28,6 +28,7 @@ RUN apt update \
 	cmake \
 	lsb-release \
 	python3-pip \
+	python-is-python3 \
     && apt -y autoclean
 
 # install nvm
