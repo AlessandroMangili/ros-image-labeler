@@ -18,9 +18,9 @@ const io = new Server(server);
 const port = process.env.PORT || 8000;
 
 const classes = new Map();
-const class_to_color = [];
-const sub_classes = {};
-const bounding_box = {};
+var class_to_color = [];
+var sub_classes = {};
+var bounding_box = {};
 
 var last_image_seq = 0;
 
@@ -51,7 +51,6 @@ app.get('/*', (req, res) => {
 // SOCKET.IO
 
 io.on('connection', (socket) => {
-
     // Create a new local instace from the bag file
     socket.on('save_bag', async (msg, callback) => {
         access_garanteed = false;
@@ -80,7 +79,7 @@ io.on('connection', (socket) => {
             setTimeout(() => {create_local_db(msg, callback)}, 2000);
             return;
         }
-        
+
         create_local_db(msg, callback);
     });
 
@@ -136,6 +135,18 @@ io.on('connection', (socket) => {
     // Send all the local instace of mongodb
     socket.on('get db', async (msg, callback) => {
         access_garanteed = false;
+
+        // If the mongodb server is active, then save the collections
+        if (mongodb) {
+            try {
+                MONGO.save_classes(client.collection('classes'), classes, class_to_color, sub_classes);
+                MONGO.save_bounding_box(client.collection('boundingbox'), bounding_box);
+            } catch (e) {
+                console.error(e);
+                callback(`error on saved data on db`);
+            }
+        }
+
         callback(await list_file_folder(PATH.join(__dirname, 'db')));
     });
 
@@ -240,7 +251,7 @@ io.on('connection', (socket) => {
         if (classes.get(msg.name) == undefined) 
             return;
 
-        sub_classes[classes.get(msg.name)].clear();
+        sub_classes[classes.get(msg.name)].delete(msg.sub_name);
         remove_bounding_box_by_sub_class(msg.name, msg.sub_name); 
     });
 
@@ -346,6 +357,9 @@ function create_local_db(msg, callback) {
             // Start the connection to mongodb client
             try {
                 client = await MONGO.connect();
+                // Create the db and collection in which the data will be saved
+                client.createCollection("classes");
+                client.createCollection("boundingbox");
                 access_garanteed = true;
                 callback('OK');
             } catch (e) {
@@ -365,6 +379,27 @@ async function connect_db(path, callback) {
     // Start the connection to mongodb client
     try {
         client = await MONGO.connect();
+
+        // Get all classes and sub-classes saved into mongodb
+        let res = await MONGO.get_classes(client.collection('classes'));
+
+        // Clear classes and sub-classes container
+        classes.clear();
+        class_to_color = [];
+        sub_classes = {};
+
+        if (res == null || res == undefined)
+            return;
+
+        res.forEach(cl => {
+            classes.set(cl.name, cl.id);
+            class_to_color.push({'name' : cl.name, 'color' : cl.color});
+            sub_classes[cl.id] = new Map();
+            cl.subclasses.forEach(sb => {
+                sub_classes[cl.id].set(sb.name, sb.id);
+            });
+        });
+
         access_garanteed = true;
         callback('OK');
     } catch (e) {

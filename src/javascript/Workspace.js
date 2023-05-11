@@ -22,7 +22,8 @@ document.getElementById('add_class').addEventListener('click', (e) => {
 // Change the target when the topic is selected
 select_topic.addEventListener('change', (e) => {
     get_first_last_seq(e.currentTarget.value);
-
+    remove_local_bounding_box();
+    
     get_bounding_box({topic: e.currentTarget.value, image: image_sequence});
     keeper_image_number.innerText = `${0}/${last-first}`;
     counter = 0;
