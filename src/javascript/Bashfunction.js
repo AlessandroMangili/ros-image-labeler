@@ -1,6 +1,6 @@
 const subProcess = require('child_process');
 
-const topics = [];
+//const topics = [];
 
 // BASH COMMAND
 
@@ -61,7 +61,7 @@ module.exports = {
     },
 
     // Function for extract all topics from bag file
-    info_rosbag : function(path) {
+    /*info_rosbag : function(path) {
         let info = subProcess.spawnSync(
             `rosbag info ${path}.bag`,
             {shell : true}
@@ -75,13 +75,13 @@ module.exports = {
             if (split.indexOf('image_raw') >= 0)
                 topics.push(split);
         });
-    },
+    },*/
     
     // Function for start the mongodb_log command
     launch_log : function() {
         let log = subProcess.spawn(
-            `rosrun mongodb_log mongodb_log.py` , 
-            [topics.toString().replace(',', ' ')],
+            `rosrun mongodb_log mongodb_log.py -a` , 
+            //[topics.toString().replace(',', ' ')],
             {shell : true, detached : true}
         );
 

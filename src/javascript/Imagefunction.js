@@ -24,22 +24,12 @@ module.exports = {
         }
     },
 
-    save_bounding_image : function(base64, bounding_box) {
-        if (bounding_box == undefined || Object.keys(bounding_box).length == 0)
-            return;
-
-        let buffer = Buffer.from(base64, 'base64');
-        let matrix = cv.imdecode(buffer);
-        bounding_box.forEach(obj => {
-            matrix.drawRectangle(obj.rect, obj.color, obj.bounding_box.attrs.strokeWidth);
-        });
-        cv.imwrite(`./face-dect${index++}.png`, matrix);
-    },
-
+    /*
     hex_to_rgb : function(value) {
         if (value == null)
             return new cv.Vec3(0, 0, 0);
         let hex_color = value.replace('#', '');
         return new cv.Vec3(parseInt(hex_color.substring(4, 6), 16), parseInt(hex_color.substring(2, 4), 16), parseInt(hex_color.substring(0, 2), 16));
     }
+    */
 }

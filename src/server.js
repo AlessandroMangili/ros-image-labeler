@@ -17,7 +17,8 @@ const server = http.createServer(app);
 const io = new Server(server);
 const port = process.env.PORT || 8000;
 
-const classes = [];
+const classes = new Map();
+const class_to_color = [];
 const sub_classes = {};
 const bounding_box = {};
 
@@ -123,11 +124,6 @@ io.on('connection', (socket) => {
 
         try {
             let document = await client.collection(msg.topic).findOne({'header.seq' : msg.seq});
-            
-            /* DA DECOMMENTARE PER SALVARE IMMAGINE 
-            if (Object.keys(bounding_box).length != 0 && document != null) 
-                IMAGE.save_bounding_image(IMAGE.create_image_buffer(document), bounding_box[msg.topic][last_image_seq]);
-            */
            
             last_image_seq = msg.seq;
             callback(IMAGE.create_image_buffer(document));
@@ -173,13 +169,14 @@ io.on('connection', (socket) => {
 
     // Add new class
     socket.on('add class', (msg) => {
-        classes.push(msg);
-        sub_classes[msg.name] = [];
+        classes.set(msg.name, classes.size == 0 ? 0 : Math.max(...classes.values()) + 1);
+        class_to_color.push(msg);
+        sub_classes[Math.max(...classes.values())] = new Map();
     });
 
     // Add new sub-class
     socket.on('add sub_class', (msg) => {
-        sub_classes[msg.name].push(msg.sub_name);
+        sub_classes[classes.get(msg.name)].set(msg.sub_name, sub_classes[classes.get(msg.name)].size == 0 ? 0 : Math.max(...sub_classes[classes.get(msg.name)].values()) + 1);
     });
 
     // Add a specific bounding box
@@ -187,22 +184,16 @@ io.on('connection', (socket) => {
         bounding_box[msg.topic] = bounding_box[msg.topic] || {};
         bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
 
-        let obj = {
-            'bounding_box' : msg.rect,
-            'rect' : new cv.Rect(msg.rect.attrs.x, msg.rect.attrs.y, msg.rect.attrs.width, msg.rect.attrs.height), 
-            'color' : IMAGE.hex_to_rgb(msg.rect.attrs.stroke)
-        };
-
         try {
             let index = 0;
             bounding_box[msg.topic][msg.image].forEach(rect => {
-                if (is_equal(rect, obj))
+                if (is_equal(rect, msg.rect))
                     throw index;
                 index++;
             });
-            bounding_box[msg.topic][msg.image].push(obj);
+            bounding_box[msg.topic][msg.image].push(msg.rect);
         } catch (e) {
-            bounding_box[msg.topic][msg.image][e] = obj;
+            bounding_box[msg.topic][msg.image][e] = msg.rect;
         }
 
         last_image_seq = msg.image;
@@ -210,12 +201,15 @@ io.on('connection', (socket) => {
 
     // Send all classes
     socket.on('get classes', (msg, callback) => {
-        callback(classes);
+        callback(class_to_color);
     });
 
     // Send all sub-classes releated to that class
-    socket.on('get sub_classes', (name, callback) => {
-        callback(sub_classes[name]);
+    socket.on('get sub_classes', (msg, callback) => {
+        let array = [];
+        if (classes.get(msg) != undefined)
+            array = Array.from(sub_classes[classes.get(msg)].keys());
+        callback(array);
     });
 
     // Send all bounding box releted to that image
@@ -227,42 +221,37 @@ io.on('connection', (socket) => {
 
     // Remove the class and all its bounding box
     socket.on('remove class', (msg) => {
-        try {
-            let index = 0;
-            classes.forEach(e => {
-                if(JSON.stringify(msg) === JSON.stringify(e))
-                    throw index;
-                index++;
-            });
-            return;
-        } catch (e) {
-            classes.splice(e, 1);
-            
-            // Removing all sub_classes
-            sub_classes[msg.name].splice(0, sub_classes[msg.name].length);
+        // Removing all sub_classes
+        sub_classes[classes.get(msg.name)].clear();
+        // Remove the class
+        classes.delete(msg.name);
+        // Remove the class and the relative color
+        for (let i = 0; i < class_to_color.length; i++)
+            if (JSON.stringify(msg) === JSON.stringify(class_to_color[i])) {
+                class_to_color.splice(i, 1);
+                break;
+            }
 
-            remove_bounding_box_by_class(msg.name);
-        }
+        remove_bounding_box_by_class(msg.name);
     });
 
     // Remove sub-class
     socket.on('remove sub_class', (msg) => {
-        let index = sub_classes[msg.name].indexOf(msg.sub_name);
+        if (classes.get(msg.name) == undefined) 
+            return;
 
-        if (index > -1) {
-            sub_classes[msg.name].splice(index, 1);
-            remove_bounding_box_by_sub_class(msg.name, msg.sub_name);
-        }
-    });    
+        sub_classes[classes.get(msg.name)].clear();
+        remove_bounding_box_by_sub_class(msg.name, msg.sub_name); 
+    });
 
     // Remove a specific bounding box
     socket.on('remove bounding_box', (msg) => {
         bounding_box[msg.topic] = bounding_box[msg.topic] || {};
-        bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
+        bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || {};
         try {
             let index = 0;
             bounding_box[msg.topic][msg.image].forEach(e => {
-                if (JSON.stringify(msg.rect) === JSON.stringify(e.bounding_box))
+                if (JSON.stringify(msg.rect) === JSON.stringify(e))
                     throw index;
                 index++;
             });
@@ -273,12 +262,6 @@ io.on('connection', (socket) => {
 
     // Update a specific bounding box on drag or resize
     socket.on('update bounding_box', (msg, callback) => {
-        let obj = {
-            'bounding_box' : msg.newrect,
-            'rect' : new cv.Rect(msg.newrect.attrs.x, msg.newrect.attrs.y, msg.newrect.attrs.width, msg.newrect.attrs.height), 
-            'color' : IMAGE.hex_to_rgb(msg.newrect.attrs.stroke)
-        };
-
         try {
             let index = 0;
             bounding_box[msg.topic][msg.image].forEach(e => {
@@ -288,7 +271,7 @@ io.on('connection', (socket) => {
             });
             callback('error');
         } catch (e) {
-            bounding_box[msg.topic][msg.image][e] = obj;
+            bounding_box[msg.topic][msg.image][e] = msg.newrect;
         }
     });
 });
@@ -296,10 +279,10 @@ io.on('connection', (socket) => {
 // FUNCTION
 
 function is_equal(rect1, rect2) {
-    return rect1.bounding_box.attrs.x === rect2.bounding_box.attrs.x
-    && rect1.bounding_box.attrs.y === rect2.bounding_box.attrs.y
-    && rect1.bounding_box.attrs.width === rect2.bounding_box.attrs.width
-    && rect1.bounding_box.attrs.height === rect2.bounding_box.attrs.height;
+    return rect1.attrs.x === rect2.attrs.x
+    && rect1.attrs.y === rect2.attrs.y
+    && rect1.attrs.width === rect2.attrs.width
+    && rect1.attrs.height === rect2.attrs.height;
 }
 
 // Remove all bounding box of a class
@@ -308,7 +291,7 @@ function remove_bounding_box_by_class(class_name) {
         Object.keys(bounding_box[topic]).forEach(image => {
             bounding_box[topic][image] = Object.values(
                 Object.fromEntries(
-                    Object.entries(bounding_box[topic][image]).filter(([key, val]) => val.bounding_box.attrs.name.split('-')[0] !== class_name)
+                    Object.entries(bounding_box[topic][image]).filter(([key, val]) => val.attrs.name.split('-')[0] !== class_name)
                 )
             );
         });
@@ -321,7 +304,7 @@ function remove_bounding_box_by_sub_class(class_name, sub_class) {
         Object.keys(bounding_box[topic]).forEach(image => {
             bounding_box[topic][image] = Object.values(
                 Object.fromEntries(
-                    Object.entries(bounding_box[topic][image]).filter(([key, val]) => val.bounding_box.attrs.name.split('-')[0] !== class_name || (val.bounding_box.attrs.name.split('-')[0] === class_name && val.bounding_box.attrs.name.split('-')[1] !== sub_class))
+                    Object.entries(bounding_box[topic][image]).filter(([key, val]) => val.attrs.name.split('-')[0] !== class_name || (val.attrs.name.split('-')[0] === class_name && val.attrs.name.split('-')[1] !== sub_class))
                 )
             );
         });
@@ -339,7 +322,8 @@ function create_local_db(msg, callback) {
     // The timeout is to wait for the mongodb server to start
     setTimeout(() => {
         path = PATH.join(__dirname, 'bag_file', msg);
-        BASH.info_rosbag(path);
+        
+        //BASH.info_rosbag(path);
 
         // Start command mongodb_log
         let log = BASH.launch_log();

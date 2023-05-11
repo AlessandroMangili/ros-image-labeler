@@ -111,12 +111,12 @@ function get_bounding_box(msg) {
         res.forEach(node => {
             // Create a new rect when loaded from nodejs and add function for resizing
             let rect = new Konva.Rect({
-                x: node.bounding_box.attrs.x,
-                y: node.bounding_box.attrs.y,
-                width: node.bounding_box.attrs.width,
-                height: node.bounding_box.attrs.height,
-                name: node.bounding_box.attrs.name,
-                stroke: node.bounding_box.attrs.stroke,
+                x: node.attrs.x,
+                y: node.attrs.y,
+                width: node.attrs.width,
+                height: node.attrs.height,
+                name: node.attrs.name,
+                stroke: node.attrs.stroke,
                 strokeWidth: 3,
                 draggable: true,
             });
@@ -135,13 +135,11 @@ function get_bounding_box(msg) {
             // On trasform start, get the position of the rect
             rect.on('transformstart', (e) => {
                 update_rect = {
-                    bounding_box : {
-                        attrs : {
-                            x : e.currentTarget.getPosition().x,
-                            y : e.currentTarget.getPosition().y,
-                            width : e.currentTarget.width(),
-                            height : e.currentTarget.height(),
-                        }
+                    attrs : {
+                        x : e.currentTarget.getPosition().x,
+                        y : e.currentTarget.getPosition().y,
+                        width : e.currentTarget.width(),
+                        height : e.currentTarget.height(),
                     }
                 };
             })
@@ -173,13 +171,11 @@ function get_bounding_box(msg) {
             // On drag start, get the position of the rect
             rect.on('dragstart', (e) => {
                 update_rect = {
-                    bounding_box : {
-                        attrs : {
-                            x : e.currentTarget.getPosition().x,
-                            y : e.currentTarget.getPosition().y,
-                            width : e.currentTarget.width(),
-                            height : e.currentTarget.height(),
-                        }
+                    attrs : {
+                        x : e.currentTarget.getPosition().x,
+                        y : e.currentTarget.getPosition().y,
+                        width : e.currentTarget.width(),
+                        height : e.currentTarget.height(),
                     }
                 };
             });
@@ -195,8 +191,8 @@ function get_bounding_box(msg) {
                     update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : e.currentTarget.toObject()});
                 } else {
                     e.currentTarget.setAttrs({
-                        x: update_rect.bounding_box.attrs.x,
-                        y: update_rect.bounding_box.attrs.y,
+                        x: update_rect.attrs.x,
+                        y: update_rect.attrs.y,
                     });
                 }
             });
