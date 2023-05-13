@@ -128,17 +128,19 @@ stage.on('mouseup touchend', (e) => {
             draggable : false,
         });
 
+        bounding_box[select_topic.value] = bounding_box[select_topic.value] || {};
+        bounding_box[select_topic.value][image_sequence] = bounding_box[select_topic.value][image_sequence] || [];
+
         // On trasform start, get the position of the rect
         rect.on('transformstart', (e) => {
             update_rect = {
-                bounding_box : {
-                    attrs : {
-                        x : e.currentTarget.getPosition().x,
-                        y : e.currentTarget.getPosition().y,
-                        width : e.currentTarget.width(),
-                        height : e.currentTarget.height(),
-                    }
-                }
+                attrs : {
+                    x : e.currentTarget.getPosition().x,
+                    y : e.currentTarget.getPosition().y,
+                    width : e.currentTarget.width(),
+                    height : e.currentTarget.height(),
+                },
+                id : get_id_by_bounding_box(e.currentTarget.toObject())
             };
         })
 
@@ -158,7 +160,14 @@ stage.on('mouseup touchend', (e) => {
                     y : e.currentTarget.y(),
                     width : e.currentTarget.width(),
                 });
-                update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : e.currentTarget.toObject()});
+
+                let index = get_index_by_id(update_rect.id);
+                if (index < 0) {
+                    console.error('Error on resizing bounding box');
+                    return;
+                }
+                bounding_box[select_topic.value][image_sequence][index] = {rect : e.currentTarget.toObject(), id : update_rect.id};
+                update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : {'rect' : e.currentTarget.toObject(), 'id' : update_rect.id}});
             } else {
                 remove_local_bounding_box();
                 get_bounding_box({topic: select_topic.value, image: image_sequence});
@@ -169,14 +178,13 @@ stage.on('mouseup touchend', (e) => {
         // On drag start, get the position of the rect
         rect.on('dragstart', (e) => {
             update_rect = {
-                bounding_box : {
-                    attrs : {
-                        x : e.currentTarget.getPosition().x,
-                        y : e.currentTarget.getPosition().y,
-                        width : e.currentTarget.width(),
-                        height : e.currentTarget.height(),
-                    }
-                }
+                attrs : {
+                    x : e.currentTarget.getPosition().x,
+                    y : e.currentTarget.getPosition().y,
+                    width : e.currentTarget.width(),
+                    height : e.currentTarget.height(),
+                },
+                id : get_id_by_bounding_box(e.currentTarget.toObject()),
             };
         });
 
@@ -188,7 +196,14 @@ stage.on('mouseup touchend', (e) => {
                     y : e.currentTarget.y(),
                     width : e.currentTarget.width(),
                 });
-                update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : e.currentTarget.toObject()});
+
+                let index = get_index_by_id(update_rect.id);
+                if (index < 0) {
+                    console.error('Error on dragging bounding box');
+                    return;
+                }
+                bounding_box[select_topic.value][image_sequence][index] = {rect : e.currentTarget.toObject(), id : update_rect.id};
+                update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : {'rect' : e.currentTarget.toObject(), 'id' : update_rect.id}});
             } else {
                 e.currentTarget.setAttrs({
                     x: update_rect.bounding_box.attrs.x,
@@ -212,9 +227,8 @@ stage.on('mouseup touchend', (e) => {
                             text.text(text.text() + ` ${sname}`);
 
                             sname = '';
-                            
-                            console.log(rect.attrs);
-                            add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()});
+                            bounding_box[select_topic.value][image_sequence].push({rect : rect.toObject(), id : last_id_bounding_box++});
+                            add_bounding_box({topic: select_topic.value, image: image_sequence, bounding_box: bounding_box[select_topic.value][image_sequence][bounding_box[select_topic.value][image_sequence].length - 1]});
                         } else {
                             rect.remove();
                             text.remove();
@@ -224,12 +238,12 @@ stage.on('mouseup touchend', (e) => {
             } else {
                 rect.name(rect.name() + `${sub_class_name}`);
                 text.text(text.text() + ` ${sub_class_name}`);
-                console.log(rect.attrs);
-                add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()});
+                bounding_box[select_topic.value][image_sequence].push({rect : rect.toObject(), id : last_id_bounding_box++});
+                add_bounding_box({topic: select_topic.value, image: image_sequence, bounding_box: bounding_box[select_topic.value][image_sequence][bounding_box[select_topic.value][image_sequence].length - 1]});
             }
         } else {
-            console.log(rect.attrs);
-            add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()});
+            bounding_box[select_topic.value][image_sequence].push({rect : rect.toObject(), id : last_id_bounding_box++});
+            add_bounding_box({topic: select_topic.value, image: image_sequence, bounding_box: bounding_box[select_topic.value][image_sequence][bounding_box[select_topic.value][image_sequence].length - 1]});          
         }
 
         wantDraw = false;
@@ -296,7 +310,7 @@ container.addEventListener('keydown', (e) => {
 
             node.remove();
 
-            remove_bounding_box({topic: select_topic.value, image: image_sequence, rect: node.toObject()})
+            remove_bounding_box({topic: select_topic.value, image: image_sequence, id : get_id_by_bounding_box(node.toObject())});
         });
         tr.nodes([]);
     }

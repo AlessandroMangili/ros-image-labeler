@@ -14,6 +14,9 @@ var image_sequence;         // Keep the actual image sequence
 var first = 0;
 var last = 10000;
 
+var last_id_bounding_box;   // Keep the actual last id of bounding box
+var bounding_box = {};
+
 // Show popup when the button is clicked
 document.getElementById('add_class').addEventListener('click', (e) => {
     $('#class_dialog').dialog('open');
@@ -21,8 +24,10 @@ document.getElementById('add_class').addEventListener('click', (e) => {
 
 // Change the target when the topic is selected
 select_topic.addEventListener('change', (e) => {
+    bounding_box[select_topic.value] = bounding_box[select_topic.value] || {};
     get_first_last_seq(e.currentTarget.value);
-
+    remove_local_bounding_box();
+    
     get_bounding_box({topic: e.currentTarget.value, image: image_sequence});
     keeper_image_number.innerText = `${0}/${last-first}`;
     counter = 0;
@@ -51,6 +56,7 @@ $('#workspace').on('keydown', (e) => {
         
         if (local_bounding.checked) {
             // If checked, save all local bounding box
+            // CONTROLLARE CHE NON SIA GIA' PRESENTE QUELLO CON LO STESSO ID
             bx_save.forEach(rect => {
                 add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()});
             });
@@ -167,4 +173,20 @@ function fill_topics(topics) {
         node.innerText = topic.name;
         select_topic.appendChild(node);
     });
+}
+
+// Get id of the respective bounding box
+function get_id_by_bounding_box(rect) {
+    for (let i = 0; i < bounding_box[select_topic.value][image_sequence].length; i++)
+        if (JSON.stringify(rect) === JSON.stringify(bounding_box[select_topic.value][image_sequence][i].rect)) 
+            return bounding_box[select_topic.value][image_sequence][i].id;
+    return -1;
+}
+
+// Get the index of the bounding box into the array
+function get_index_by_id(id) {
+    for (let i = 0; i < bounding_box[select_topic.value][image_sequence].length; i++)
+        if (id == bounding_box[select_topic.value][image_sequence][i].id)
+            return i;
+    return -1;
 }
