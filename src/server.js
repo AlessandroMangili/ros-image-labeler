@@ -21,8 +21,7 @@ const classes = new Map();
 var class_to_color = [];
 var sub_classes = {};
 var bounding_box = {};
-
-var last_image_seq = 0;
+var last_id_bounding_box = 0;   // Keep the actual last id of bounding box
 
 // contains the connection with the mongodb local instance 
 var client;
@@ -140,7 +139,7 @@ io.on('connection', (socket) => {
         if (mongodb) {
             try {
                 MONGO.save_classes(client.collection('classes'), classes, class_to_color, sub_classes);
-                MONGO.save_bounding_box(client.collection('boundingbox'), bounding_box);
+                MONGO.save_bounding_box(client.collection('bounding_box'), bounding_box);
             } catch (e) {
                 console.error(e);
                 callback(`error on saved data on db`);
@@ -191,22 +190,23 @@ io.on('connection', (socket) => {
     });
 
     // Add a specific bounding box
-    socket.on('add bounding_box', async (msg) => {       
+    socket.on('add bounding_box', async (msg) => {   
         bounding_box[msg.topic] = bounding_box[msg.topic] || {};
         bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
 
         try {
             let index = 0;
-            bounding_box[msg.topic][msg.image].forEach(rect => {
-                if (is_equal(rect, msg.rect))
+            bounding_box[msg.topic][msg.image].forEach(obj => {
+                if (obj.id == msg.bounding_box.id)
                     throw index;
                 index++;
             });
-            bounding_box[msg.topic][msg.image].push(msg.rect);
+            bounding_box[msg.topic][msg.image].push(msg.bounding_box);
         } catch (e) {
-            bounding_box[msg.topic][msg.image][e] = msg.rect;
+            bounding_box[msg.topic][msg.image][e] = msg.bounding_box;
         }
 
+        last_id_bounding_box++;
         last_image_seq = msg.image;
     });
 
@@ -227,7 +227,7 @@ io.on('connection', (socket) => {
     socket.on('get bounding_box', (msg, callback) => {
         bounding_box[msg.topic] = bounding_box[msg.topic] || {};
         bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
-        callback(bounding_box[msg.topic][msg.image]);
+        callback({'array' : bounding_box[msg.topic][msg.image], 'id' : last_id_bounding_box});
     });
 
     // Remove the class and all its bounding box
@@ -256,53 +256,37 @@ io.on('connection', (socket) => {
     });
 
     // Remove a specific bounding box
-    socket.on('remove bounding_box', (msg) => {
+    socket.on('remove bounding_box', (msg, callback) => {
         bounding_box[msg.topic] = bounding_box[msg.topic] || {};
-        bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || {};
-        try {
-            let index = 0;
-            bounding_box[msg.topic][msg.image].forEach(e => {
-                if (JSON.stringify(msg.rect) === JSON.stringify(e))
-                    throw index;
-                index++;
-            });
-        } catch (e) {
-            bounding_box[msg.topic][msg.image].splice(e, 1);
-        }
+        bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
+
+        for (let i = 0; i < bounding_box[msg.topic][msg.image].length; i++)
+            if (msg.id == bounding_box[msg.topic][msg.image][i].id) {
+                bounding_box[msg.topic][msg.image].splice(i, 1);
+                return;
+            }
+        callback(`Error on remove bounding box: ${msg.bounding_box.id}`);
     });
 
     // Update a specific bounding box on drag or resize
     socket.on('update bounding_box', (msg, callback) => {
-        try {
-            let index = 0;
-            bounding_box[msg.topic][msg.image].forEach(e => {
-                if (is_equal(e, msg.oldrect))
-                    throw index;
-                index++;
-            });
-            callback('error');
-        } catch (e) {
-            bounding_box[msg.topic][msg.image][e] = msg.newrect;
-        }
+        for (let i = 0; i < bounding_box[msg.topic][msg.image].length; i++)
+            if (bounding_box[msg.topic][msg.image][i].id == msg.oldrect.id) {
+                bounding_box[msg.topic][msg.image][i] = msg.newrect;
+                return;
+            }
+        callback('error');
     });
 });
 
 // FUNCTION
-
-function is_equal(rect1, rect2) {
-    return rect1.attrs.x === rect2.attrs.x
-    && rect1.attrs.y === rect2.attrs.y
-    && rect1.attrs.width === rect2.attrs.width
-    && rect1.attrs.height === rect2.attrs.height;
-}
-
 // Remove all bounding box of a class
 function remove_bounding_box_by_class(class_name) {
     Object.keys(bounding_box).forEach((topic, _) => {
         Object.keys(bounding_box[topic]).forEach(image => {
             bounding_box[topic][image] = Object.values(
                 Object.fromEntries(
-                    Object.entries(bounding_box[topic][image]).filter(([key, val]) => val.attrs.name.split('-')[0] !== class_name)
+                    Object.entries(bounding_box[topic][image]).filter(([key, val]) => val.rect.attrs.name.split('-')[0] !== class_name)
                 )
             );
         });
@@ -315,7 +299,7 @@ function remove_bounding_box_by_sub_class(class_name, sub_class) {
         Object.keys(bounding_box[topic]).forEach(image => {
             bounding_box[topic][image] = Object.values(
                 Object.fromEntries(
-                    Object.entries(bounding_box[topic][image]).filter(([key, val]) => val.attrs.name.split('-')[0] !== class_name || (val.attrs.name.split('-')[0] === class_name && val.attrs.name.split('-')[1] !== sub_class))
+                    Object.entries(bounding_box[topic][image]).filter(([key, val]) => val.rect.attrs.name.split('-')[0] !== class_name || (val.rect.attrs.name.split('-')[0] === class_name && val.rect.attrs.name.split('-')[1] !== sub_class))
                 )
             );
         });
@@ -353,13 +337,12 @@ function create_local_db(msg, callback) {
                 console.log(`Error on kill process ${e}`);
             }
             
-
             // Start the connection to mongodb client
             try {
                 client = await MONGO.connect();
                 // Create the db and collection in which the data will be saved
                 client.createCollection("classes");
-                client.createCollection("boundingbox");
+                client.createCollection("bounding_box");
                 access_garanteed = true;
                 callback('OK');
             } catch (e) {
@@ -381,17 +364,20 @@ async function connect_db(path, callback) {
         client = await MONGO.connect();
 
         // Get all classes and sub-classes saved into mongodb
-        let res = await MONGO.get_classes(client.collection('classes'));
+        let res_class = await MONGO.get_classes(client.collection('classes'));
+        let res_bounding = await MONGO.get_classes(client.collection('bounding_box'));
 
         // Clear classes and sub-classes container
         classes.clear();
         class_to_color = [];
         sub_classes = {};
+        bounding_box = {};
+        last_id_bounding_box = 0;
 
-        if (res == null || res == undefined)
+        if (res_class == null || res_class == undefined || res_class == null || res_class == undefined)
             return;
 
-        res.forEach(cl => {
+        res_class.forEach(cl => {
             classes.set(cl.name, cl.id);
             class_to_color.push({'name' : cl.name, 'color' : cl.color});
             sub_classes[cl.id] = new Map();
@@ -399,6 +385,18 @@ async function connect_db(path, callback) {
                 sub_classes[cl.id].set(sb.name, sb.id);
             });
         });
+
+        res_bounding.forEach(topic => {
+            bounding_box[topic.topic] = bounding_box[topic.topic] || {};
+            topic.images.forEach(image => {
+                bounding_box[topic.topic][image.image_seq] = bounding_box[topic.topic][image.image_seq] || [];
+                image.bounding_box.forEach(rect => {
+                    bounding_box[topic.topic][image.image_seq].push(rect);
+                    if (rect.id > last_id_bounding_box)
+                        last_id_bounding_box = rect.id;
+                });
+            });
+        })
 
         access_garanteed = true;
         callback('OK');

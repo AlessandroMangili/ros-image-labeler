@@ -23,9 +23,8 @@ module.exports = {
 
     save_classes : async function(client, classes, class_to_color, sub_classes) {
         var obj = [];
-
-        // Remove all collection before save
-        client.deleteMany({});
+        // Remove all documents before save
+        await client.deleteMany({});
 
         if (classes.size == 0)
             return;
@@ -39,15 +38,40 @@ module.exports = {
         });
 
         try {
-            await client.insertMany(obj)
+            await client.insertMany(obj);
             console.log('Classes and sub-classes saved succesfull');
         } catch (error) {
-            throw new Error(`error: ${error}`);
+            throw new Error(`error saving classes and sub-classes: ${error}`);
         }
     },
 
-    save_bounding_box : async function(client, boundingbox) {
+    save_bounding_box : async function(client, bounding) {
+        let obj = [];
+        // Remove all documents before save
+        await client.deleteMany({});
 
+        if (bounding.length == 0)
+            return;
+
+        Object.keys(bounding).forEach((topic, _) => {
+            let i = [];
+            Object.keys(bounding[topic]).forEach(image => {
+                let r = [];
+                bounding[topic][image].forEach(rect => {
+                    r.push(rect);
+                });
+                i.push({'image_seq' : image, 'bounding_box' : r});
+                
+            });
+            obj.push({'topic' : topic, 'images' : i});
+        });
+
+        try {
+            await client.insertMany(obj);
+            console.log('Bounding box saved succesfull');
+        } catch (error) {
+            throw new Error(`error saving bounding box: ${error}`);
+        }
     },
 
     get_classes : async function(client) {
@@ -56,6 +80,7 @@ module.exports = {
     },
 
     get_bounding_box : async function(client) {
-
+        let res = await client.find({}).toArray();
+        return res;
     }
 }

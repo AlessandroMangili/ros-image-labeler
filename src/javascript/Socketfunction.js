@@ -105,18 +105,24 @@ function get_bounding_box(msg) {
         if (res == null) 
             return;
 
+        last_id_bounding_box = res.id;
         let update_rect;
 
         // Get all bounding box saved on the server
-        res.forEach(node => {
+        res.array.forEach(node => {
+            bounding_box[select_topic.value] = bounding_box[select_topic.value] || {};
+            bounding_box[select_topic.value][image_sequence] = bounding_box[select_topic.value][image_sequence] || [];
+            // CONTROLLARE CHE NON ESISTA GIA'
+            bounding_box[select_topic.value][image_sequence].push({rect : node.rect, id : node.id});
+
             // Create a new rect when loaded from nodejs and add function for resizing
             let rect = new Konva.Rect({
-                x: node.attrs.x,
-                y: node.attrs.y,
-                width: node.attrs.width,
-                height: node.attrs.height,
-                name: node.attrs.name,
-                stroke: node.attrs.stroke,
+                x: node.rect.attrs.x,
+                y: node.rect.attrs.y,
+                width: node.rect.attrs.width,
+                height: node.rect.attrs.height,
+                name: node.rect.attrs.name,
+                stroke: node.rect.attrs.stroke,
                 strokeWidth: 3,
                 draggable: true,
             });
@@ -140,9 +146,10 @@ function get_bounding_box(msg) {
                         y : e.currentTarget.getPosition().y,
                         width : e.currentTarget.width(),
                         height : e.currentTarget.height(),
-                    }
+                    },
+                    id : node.id,
                 };
-            })
+            });
 
             // On trasform end, update the position of the rect into the server
             rect.on('transformend', (e) => {
@@ -160,7 +167,14 @@ function get_bounding_box(msg) {
                         y : e.currentTarget.y(),
                         width : e.currentTarget.width(),
                     });
-                    update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : e.currentTarget.toObject()});
+
+                    let index = get_index_by_id(update_rect.id);
+                    if (index < 0) {
+                        console.error('Error on resizing bounding box');
+                        return;
+                    }
+                    bounding_box[select_topic.value][image_sequence][index] = {rect : e.currentTarget.toObject(), id : update_rect.id};
+                    update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : {rect : e.currentTarget.toObject(), id : update_rect.id}});
                 } else {
                     remove_local_bounding_box();
                     get_bounding_box({topic: select_topic.value, image: image_sequence});
@@ -176,7 +190,8 @@ function get_bounding_box(msg) {
                         y : e.currentTarget.getPosition().y,
                         width : e.currentTarget.width(),
                         height : e.currentTarget.height(),
-                    }
+                    },
+                    id : node.id,
                 };
             });
 
@@ -188,7 +203,13 @@ function get_bounding_box(msg) {
                         y : e.currentTarget.y(),
                         width : e.currentTarget.width(),
                     });
-                    update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : e.currentTarget.toObject()});
+                    let index = get_index_by_id(update_rect.id);
+                    if (index < 0) {
+                        console.error('Error on dragging bounding box');
+                        return;
+                    }
+                    bounding_box[select_topic.value][image_sequence][index] = {rect : e.currentTarget.toObject(), id : update_rect.id};
+                    update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : {rect : e.currentTarget.toObject(), id : update_rect.id}});
                 } else {
                     e.currentTarget.setAttrs({
                         x: update_rect.attrs.x,
@@ -215,7 +236,10 @@ function remove_sub_class(msg) {
 
 // Remove bounding box from the rect
 function remove_bounding_box(msg) {
-    socket.emit('remove bounding_box', msg);
+    socket.emit('remove bounding_box', msg, (res) => {
+        if (res.indexOf('error') >= 0)
+            console.error('error on remove bounding box');
+    });
 }
 
 // Update a specific bounding box on drag or resize
