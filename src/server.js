@@ -3,7 +3,6 @@ const http = require('http');
 const { Server } = require('socket.io');
 const fs = require('fs');
 const PATH = require('path');
-const cv = require('opencv4nodejs');
 
 // JS file import
 const IMAGE = require(PATH.join(__dirname, 'javascript/Imagefunction'));
@@ -282,6 +281,10 @@ io.on('connection', (socket) => {
             }
         callback('error');
     });
+
+    socket.on('fill bounding_box', (msg, callback) => {
+        callback({'array' : bounding_box, 'id' : last_id_bounding_box});
+    })
 });
 
 // FUNCTION
@@ -401,7 +404,9 @@ async function connect_db(path, callback) {
                         last_id_bounding_box = rect.id;
                 });
             });
-        })
+        });
+
+        last_id_bounding_box++;
 
         access_garanteed = true;
         callback('OK');
@@ -465,6 +470,35 @@ async function list_file_folder(path) {
             else
                 return files.length == 0 ? resolve([]) : resolve(files);
         });
+    });
+}
+
+// CTRL + C detection
+process.on('SIGINT', async () => {
+    rosexit = true;
+    try {
+        await MONGO.save_classes(client.collection('classes'), classes, class_to_color, sub_classes);
+        await MONGO.save_bounding_box(client.collection('bounding_box'), bounding_box);
+        process.exit();
+    } catch (e) {
+        console.error(`error on save data on db: ${e}`);
+        prompt_question();
+    }
+});
+
+// QUESTION
+function prompt_question() {
+    const readline = require('readline').createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    });
+    
+    readline.question(`Are you sure you want to exit even if the data has not been saved (y/n)?\n`, async (response) => {
+        if (response.toLocaleLowerCase() == 'y') {
+            readline.close();
+            process.exit();
+        } else
+            roscore = BASH.launch_roscore();
     });
 }
 

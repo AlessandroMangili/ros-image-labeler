@@ -63,6 +63,17 @@ function get_image(msg, mode) {
     });
 }
 
+// Function for fill bounding box array
+function fill_bounding_box_array() {
+    socket.emit('fill bounding_box', '', (res) => {
+        if (res == null)
+            return;
+        
+        last_id_bounding_box = res.id;
+        bounding_box = res.array;
+    });
+}
+
 // Add class formed by name and color
 function add_class(msg) {
     socket.emit('add class', msg);
@@ -108,12 +119,13 @@ function get_bounding_box(msg) {
         last_id_bounding_box = res.id;
         let update_rect;
 
+        bounding_box[select_topic.value] = bounding_box[select_topic.value] || {};
+        bounding_box[select_topic.value][image_sequence] = bounding_box[select_topic.value][image_sequence] || [];
+
         // Get all bounding box saved on the server
         res.array.forEach(node => {
-            bounding_box[select_topic.value] = bounding_box[select_topic.value] || {};
-            bounding_box[select_topic.value][image_sequence] = bounding_box[select_topic.value][image_sequence] || [];
-            // CONTROLLARE CHE NON ESISTA GIA'
-            bounding_box[select_topic.value][image_sequence].push({rect : node.rect, id : node.id});
+            if (!exist_bounding_box_by_id(node.id))
+                bounding_box[select_topic.value][image_sequence].push({rect : node.rect, id : node.id});
 
             // Create a new rect when loaded from nodejs and add function for resizing
             let rect = new Konva.Rect({
@@ -172,6 +184,7 @@ function get_bounding_box(msg) {
                     if (index < 0) {
                         console.error('Error on resizing bounding box');
                         return;
+                    
                     }
                     bounding_box[select_topic.value][image_sequence][index] = {rect : e.currentTarget.toObject(), id : update_rect.id};
                     update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : {rect : e.currentTarget.toObject(), id : update_rect.id}});
@@ -208,6 +221,7 @@ function get_bounding_box(msg) {
                         console.error('Error on dragging bounding box');
                         return;
                     }
+
                     bounding_box[select_topic.value][image_sequence][index] = {rect : e.currentTarget.toObject(), id : update_rect.id};
                     update_bounding_box({topic: select_topic.value, image: image_sequence, oldrect : update_rect, newrect : {rect : e.currentTarget.toObject(), id : update_rect.id}});
                 } else {

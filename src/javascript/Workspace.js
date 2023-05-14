@@ -37,11 +37,12 @@ select_topic.addEventListener('change', (e) => {
 $('#workspace').ready((e) => {
     get_all_topics();
     get_classes();
+    fill_bounding_box_array();
     counter = 0;
 });
 
 // Scroll through images back and forth
-$('#workspace').on('keydown', (e) => {
+$('#workspace').on('keydown', async (e) => {
     if (e.keyCode == 188 && image_sequence > first) { // , prev
         get_image({topic : select_topic.value, seq : --image_sequence}, 'P');
         remove_local_bounding_box();
@@ -53,12 +54,21 @@ $('#workspace').on('keydown', (e) => {
 
         let bx_save = layer.getChildren(node => {return node._id > 14 && node.className != 'Text';});
         remove_local_bounding_box();
-        
+
+        // If checked, save all local bounding box
         if (local_bounding.checked) {
-            // If checked, save all local bounding box
-            // CONTROLLARE CHE NON SIA GIA' PRESENTE QUELLO CON LO STESSO ID
+            bounding_box[select_topic.value] = bounding_box[select_topic.value] || {};
+            bounding_box[select_topic.value][image_sequence] = bounding_box[select_topic.value][image_sequence] || [];
+
             bx_save.forEach(rect => {
-                add_bounding_box({topic: select_topic.value, image: image_sequence, rect: rect.toObject()});
+                let old_id = get_id_prev_image(rect.toObject());
+
+                if (old_id >= 0 && !exist_bounding_box_by_id(old_id)) {
+                    bounding_box[select_topic.value][image_sequence].push({rect : rect.toObject(), id : old_id});
+                    console.log("ADDED" + old_id);
+                    console.log(rect.toObject());
+                    add_bounding_box({topic: select_topic.value, image: image_sequence, bounding_box: bounding_box[select_topic.value][image_sequence][bounding_box[select_topic.value][image_sequence].length - 1]});   
+                }
             });
         }
 
@@ -189,4 +199,18 @@ function get_index_by_id(id) {
         if (id == bounding_box[select_topic.value][image_sequence][i].id)
             return i;
     return -1;
+}
+
+function get_id_prev_image(rect) {
+    for (let i = 0; i < bounding_box[select_topic.value][image_sequence - 1].length; i++)
+        if (JSON.stringify(rect) === JSON.stringify(bounding_box[select_topic.value][image_sequence - 1][i].rect))
+            return bounding_box[select_topic.value][image_sequence - 1][i].id;
+    return -1;
+}
+
+function exist_bounding_box_by_id(id) {
+    for (let i = 0; i < bounding_box[select_topic.value][image_sequence].length; i++)
+        if (bounding_box[select_topic.value][image_sequence][i].id == id)
+            return true;
+    return false;
 }
