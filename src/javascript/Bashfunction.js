@@ -1,7 +1,5 @@
 const subProcess = require('child_process');
 
-//const topics = [];
-
 // BASH COMMAND
 
 module.exports = {
@@ -18,7 +16,10 @@ module.exports = {
                 console.error('roscore was killed with signal', signal);
                 return;
             }
-    
+            
+            if (code == 0)
+                return;
+
             console.log('be sure to have closed all roscore process, it will be restart in a few seconds');
     
             setTimeout(() => {
