@@ -65,8 +65,6 @@ $('#workspace').on('keydown', async (e) => {
 
                 if (old_id >= 0 && !exist_bounding_box_by_id(old_id)) {
                     bounding_box[select_topic.value][image_sequence].push({rect : rect.toObject(), id : old_id});
-                    console.log("ADDED" + old_id);
-                    console.log(rect.toObject());
                     add_bounding_box({topic: select_topic.value, image: image_sequence, bounding_box: bounding_box[select_topic.value][image_sequence][bounding_box[select_topic.value][image_sequence].length - 1]});   
                 }
             });
