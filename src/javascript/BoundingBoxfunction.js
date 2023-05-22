@@ -307,10 +307,16 @@ container.addEventListener('keydown', (e) => {
             remove.forEach(text => {
                 text.remove();
             });
+            
+            let id = get_id_by_bounding_box(node.toObject());
 
             node.remove();
 
-            remove_bounding_box({topic: select_topic.value, image: image_sequence, id : get_id_by_bounding_box(node.toObject())});
+            remove_bounding_box({topic: select_topic.value, image: image_sequence, id : id});
+
+            let index = get_index_by_id(id);
+            if (index >= 0)
+                bounding_box[select_topic.value][image_sequence].splice(index, 1);
         });
         tr.nodes([]);
     }
