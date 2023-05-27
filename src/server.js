@@ -11,19 +11,10 @@ const BASH = require(PATH.join(__dirname, 'javascript/Bashfunction'));
 
 const app = express();
 app.use(express.static(__dirname));
-
 const server = http.createServer(app);
 const io = new Server(server);
 const port = process.env.PORT || 8000;
 
-const classes = new Map();
-var class_to_color = [];
-var sub_classes = {};
-var bounding_box = {};
-var last_id_bounding_box = 0;   // Keep the actual last id of bounding box
-
-// contains the connection with the mongodb local instance 
-var client;
 // contains process of command mongodb_store.launch 
 var mongodb;
 // contains process of command roscore
@@ -55,7 +46,7 @@ io.on('connection', (socket) => {
 
         // Check if the bag file exist in bag_file folder or not
         if(!fs.existsSync(PATH.join(__dirname, 'bag_file', `${msg}.bag`))) {
-            console.warn(`${msg}.bag does not exist in folder \'bag_file\'`);
+            console.error(`${msg}.bag does not exist in folder \'bag_file\'`);
             callback(`${msg}.bag does not exist in folder \'bag_file\'`);
             return;
         }
@@ -83,68 +74,36 @@ io.on('connection', (socket) => {
 
     // Return all valid topics (image_raw) of the current local instace
     socket.on('get topics', async (_, callback) => {
-        if (client == null)
-            return;
-
         try {
-            let topics = await client.listCollections().toArray();
-            let clone = topics.slice();
-    
-            topics.forEach(topic => {
-                if (topic.name.indexOf('image_raw') < 0)
-                    clone.splice(clone.indexOf(topic), 1);
-            });
-            callback(clone);
+            callback(await MONGO.get_image_topics());
         } catch (e) {
-            callback(`error : ${e}`);
-        } 
+            callback(String(e));
+        }
     });
 
     // Send the first sequence number of that topic
     socket.on('get first_last_seq', async (msg, callback) => {
-        if (client == null)
-            return
-
         try {
-            let result = await MONGO.get_first_last_seq(client, msg);
-            last_image_seq = result.first;
-            callback(result);
+            callback(await MONGO.get_first_last_seq(msg));
         } catch (e) {
-            callback(`error : ${e}`);
+            callback(String(e));
         }
     });
 
     // Send the buffer that encode image
     socket.on('get image', async(msg, callback) => {
-        if (client == null)
-            return;
-
         try {
-            let document = await client.collection(msg.topic).findOne({'header.seq' : msg.seq});
-           
-            last_image_seq = msg.seq;
-            callback(IMAGE.create_image_buffer(document));
+            let result = await MONGO.get_image(msg.topic, msg.seq);
+            callback(IMAGE.create_image_buffer(result));
         } catch (e) {
-            console.error(e);
-            callback(`error on encoding image`);
+            console.error(`error on encoding image: ${e}`);
+            callback(`error on encoding image: ${e}`);
         }
     });
 
     // Send all the local instace of mongodb
-    socket.on('get db', async (msg, callback) => {
+    socket.on('get db', async (_, callback) => {
         access_garanteed = false;
-
-        // If the mongodb server is active, then save the collections
-        if (mongodb) {
-            try {
-                MONGO.save_classes(client.collection('classes'), classes, class_to_color, sub_classes);
-                MONGO.save_bounding_box(client.collection('bounding_box'), bounding_box);
-            } catch (e) {
-                console.error(e);
-                callback(`error on saved data on db`);
-            }
-        }
-
         callback(await list_file_folder(PATH.join(__dirname, 'db')));
     });
 
@@ -177,180 +136,154 @@ io.on('connection', (socket) => {
     // HANDLE BOUNDING BOX
 
     // Add new class
-    socket.on('add class', (msg) => {
-        classes.set(msg.name, classes.size == 0 ? 0 : Math.max(...classes.values()) + 1);
-        class_to_color.push(msg);
-        sub_classes[Math.max(...classes.values())] = new Map();
+    socket.on('add class', async (msg, callback) => {
+        try {
+            await MONGO.add_class(msg.name, msg.color);
+            callback(`class ${msg.name} saved`);
+        } catch (e) {
+            callback(String(e));
+        }
     });
 
     // Add new sub-class
-    socket.on('add sub_class', (msg) => {
-        sub_classes[classes.get(msg.name)].set(msg.sub_name, sub_classes[classes.get(msg.name)].size == 0 ? 0 : Math.max(...sub_classes[classes.get(msg.name)].values()) + 1);
+    socket.on('add sub_class', async (msg, callback) => {
+        try {
+            await MONGO.add_sub_class(msg.name, msg.sub_name);
+            callback(`subclass ${msg.sub_name} of class ${msg.name} saved`);
+        } catch (e) {
+            callback(String(e));
+        }
     });
 
-    // Add a specific bounding box
-    socket.on('add bounding_box', async (msg) => {   
-        bounding_box[msg.topic] = bounding_box[msg.topic] || {};
-        bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
-
+    socket.on('add bounding_box with id', async (msg, callback) => {
         try {
-            let index = 0;
-            bounding_box[msg.topic][msg.image].forEach(obj => {
-                if (obj.id == msg.bounding_box.id)
-                    throw index;
-                index++;
-            });
-            bounding_box[msg.topic][msg.image].push(msg.bounding_box);
+            await MONGO.add_bounding_box_with_id(msg.topic, msg.image, msg.bounding_box, msg.id);
+            callback('bounding box aggiunto');
         } catch (e) {
-            bounding_box[msg.topic][msg.image][e] = msg.bounding_box;
+            callback(String(e));
         }
+    }),
 
-        last_id_bounding_box++;
-        last_image_seq = msg.image;
+    // Add a specific bounding box
+    socket.on('add bounding_box', async (msg, callback) => {   
+        try {
+            await MONGO.add_bounding_box(msg.topic, msg.image, msg.bounding_box);
+            callback('bounding box aggiunto');
+        } catch (e) {
+            callback(String(e));
+        }
     });
 
     // Send all classes
-    socket.on('get classes', (msg, callback) => {
-        callback(class_to_color);
+    socket.on('get classes', async (msg, callback) => {
+        try {
+            callback(await MONGO.get_classes());
+        } catch (e) {
+            callback(String(e));
+        }
     });
 
     // Send all sub-classes releated to that class
-    socket.on('get sub_classes', (msg, callback) => {
-        let array = [];
-        if (classes.get(msg) != undefined)
-            array = Array.from(sub_classes[classes.get(msg)].keys());
-        callback(array);
+    socket.on('get sub_classes', async (msg, callback) => {
+        try {
+            callback(await MONGO.get_sub_classes(msg));
+        } catch (e) {
+            callback(String(e));
+        }
+    });
+
+    socket.on('get only bounding_box', async (msg, callback) => {
+        try {
+            callback(await MONGO.get_bounding_box(msg.topic, msg.image));
+        } catch (e) {
+            callback(String(e));
+        }
     });
 
     // Send all bounding box releted to that image
-    socket.on('get bounding_box', (msg, callback) => {
-        bounding_box[msg.topic] = bounding_box[msg.topic] || {};
-        bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
-        callback({'array' : bounding_box[msg.topic][msg.image], 'id' : last_id_bounding_box});
+    socket.on('get bounding_box', async (msg, callback) => {
+        try {
+            callback(await MONGO.get_bounding_box(msg.topic, msg.image));
+        } catch (e) {
+            callback(String(e));
+        }
     });
 
     // Remove the class and all its bounding box
-    socket.on('remove class', (msg) => {
-        // Removing all sub_classes
-        sub_classes[classes.get(msg.name)].clear();
-        // Remove the class
-        classes.delete(msg.name);
-        // Remove the class and the relative color
-        for (let i = 0; i < class_to_color.length; i++)
-            if (JSON.stringify(msg) === JSON.stringify(class_to_color[i])) {
-                class_to_color.splice(i, 1);
-                break;
-            }
-
-        remove_bounding_box_by_class(msg.name);
+    socket.on('remove class', async (msg, callback) => {
+        try {
+            await MONGO.remove_class(msg);
+            callback('class removed successfully');
+        } catch (e) {
+            callback(String(e));
+        }
     });
 
     // Remove sub-class
-    socket.on('remove sub_class', (msg) => {
-        if (classes.get(msg.name) == undefined) 
-            return;
-
-        sub_classes[classes.get(msg.name)].delete(msg.sub_name);
-        remove_bounding_box_by_sub_class(msg.name, msg.sub_name); 
+    socket.on('remove sub_class', async (msg, callback) => {
+        try {
+            await MONGO.remove_sub_class(msg.name, msg.sub_name);
+            callback('sub class removed successfully');
+        } catch (e) {
+            callback(String(e));
+        }
     });
 
     // Remove a specific bounding box
-    socket.on('remove bounding_box', (msg, callback) => {
-        bounding_box[msg.topic] = bounding_box[msg.topic] || {};
-        bounding_box[msg.topic][msg.image] = bounding_box[msg.topic][msg.image] || [];
-
-        for (let i = 0; i < bounding_box[msg.topic][msg.image].length; i++)
-            if (msg.id == bounding_box[msg.topic][msg.image][i].id) {
-                bounding_box[msg.topic][msg.image].splice(i, 1);
-                return;
-            }
-        callback(`Error on remove bounding box: ${msg.bounding_box.id}`);
+    socket.on('remove bounding_box', async (msg, callback) => {
+        try {
+            await MONGO.remove_bounding_box(msg.topic, msg.image, msg.id);
+            callback('bounding box removed successfully');
+        } catch (e) {
+            callback(String(e));
+        }
     });
 
     // Update a specific bounding box on drag or resize
-    socket.on('update bounding_box', (msg, callback) => {
-        for (let i = 0; i < bounding_box[msg.topic][msg.image].length; i++)
-            if (bounding_box[msg.topic][msg.image][i].id == msg.oldrect.id) {
-                bounding_box[msg.topic][msg.image][i] = msg.newrect;
-                return;
-            }
-        callback('error');
+    socket.on('update bounding_box', async (msg, callback) => {
+        try {
+            await MONGO.update_bounding_box(msg.topic, msg.image, msg.old_rect, msg.new_rect);
+            callback('bounding box update successfully');
+        } catch (e) {
+            callback(String(e));
+        }
     });
-
-    socket.on('fill bounding_box', (msg, callback) => {
-        callback({'array' : bounding_box, 'id' : last_id_bounding_box});
-    })
 });
-
-// FUNCTION
-// Remove all bounding box of a class
-function remove_bounding_box_by_class(class_name) {
-    Object.keys(bounding_box).forEach((topic, _) => {
-        Object.keys(bounding_box[topic]).forEach(image => {
-            bounding_box[topic][image] = Object.values(
-                Object.fromEntries(
-                    Object.entries(bounding_box[topic][image]).filter(([key, val]) => val.rect.attrs.name.split('-')[0] !== class_name)
-                )
-            );
-        });
-    });
-}
-
-// Remove all bounding box of a sub-class
-function remove_bounding_box_by_sub_class(class_name, sub_class) {
-    Object.keys(bounding_box).forEach((topic, _) => {
-        Object.keys(bounding_box[topic]).forEach(image => {
-            bounding_box[topic][image] = Object.values(
-                Object.fromEntries(
-                    Object.entries(bounding_box[topic][image]).filter(([key, val]) => val.rect.attrs.name.split('-')[0] !== class_name || (val.rect.attrs.name.split('-')[0] === class_name && val.rect.attrs.name.split('-')[1] !== sub_class))
-                )
-            );
-        });
-    });
-}
 
 function create_local_db(msg, callback) {
     // Create the path to save the db instace
     let path = PATH.join(__dirname, 'db', msg);
     create_folder(path);
-
     // Start command mongodb_store.launch (server)
     mongodb = BASH.launch_mongodb(path, 62345);
 
     // The timeout is to wait for the mongodb server to start
     setTimeout(() => {
         path = PATH.join(__dirname, 'bag_file', msg);
-        
-        //BASH.info_rosbag(path);
 
         // Start command mongodb_log
         let log = BASH.launch_log();
-
         // Start command rosbag play 
         let bag = BASH.launch_rosbag_play(path);
 
         // The bag file is over
         bag.stdout.on('end', async () => {
             console.log(`END READ FILE BAG`);
-
             // '-' is for kill all subprocess of that process and awit is for handle the promise
             try {
                 await process.kill(-log.pid);
             } catch (e) {
-                console.log(`Error on kill process ${e}`);
+                console.log(`error on kill process ${e}`);
             }
             
             // Start the connection to mongodb client
             try {
-                client = await MONGO.connect();
-                // Create the db and collection in which the data will be saved
-                client.createCollection("classes");
-                client.createCollection("bounding_box");
+                await MONGO.connect();
+                await MONGO.create_collections();
                 access_garanteed = true;
-                callback('OK');
+                callback('connected to mongodb instance');
             } catch (e) {
-                console.error(`error on connected mongodb: ${e}`);
-                callback(`error on connected mongodb: ${e}`);
+                callback(e);
             }
         });
     }, 1000);
@@ -364,50 +297,11 @@ async function connect_db(path, callback) {
 
     // Start the connection to mongodb client
     try {
-        client = await MONGO.connect();
-
-        // Get all classes and sub-classes saved into mongodb
-        let res_class = await MONGO.get_classes(client.collection('classes'));
-        let res_bounding = await MONGO.get_classes(client.collection('bounding_box'));
-
-        // Clear classes and sub-classes container
-        classes.clear();
-        class_to_color = [];
-        sub_classes = {};
-        bounding_box = {};
-        last_id_bounding_box = 0;
-
-        if (res_class == null || res_class == undefined || res_class == null || res_class == undefined)
-            return;
-
-        res_class.forEach(cl => {
-            classes.set(cl.name, cl.id);
-            class_to_color.push({'name' : cl.name, 'color' : cl.color});
-            sub_classes[cl.id] = new Map();
-            cl.subclasses.forEach(sb => {
-                sub_classes[cl.id].set(sb.name, sb.id);
-            });
-        });
-
-        res_bounding.forEach(topic => {
-            bounding_box[topic.topic] = bounding_box[topic.topic] || {};
-            topic.images.forEach(image => {
-                bounding_box[topic.topic][image.image_seq] = bounding_box[topic.topic][image.image_seq] || [];
-                image.bounding_box.forEach(rect => {
-                    bounding_box[topic.topic][image.image_seq].push(rect);
-                    if (rect.id > last_id_bounding_box)
-                        last_id_bounding_box = rect.id;
-                });
-            });
-        });
-
-        last_id_bounding_box++;
-
+        await MONGO.connect();        
         access_garanteed = true;
-        callback('OK');
+        callback('connected to mongodb instance');
     } catch (e) {
-        console.error(`error on connected mongodb: ${e}`);
-        callback(`error on connected mongodb: ${e}`);
+        callback(e);
     }
 }
 
@@ -465,35 +359,6 @@ async function list_file_folder(path) {
             else
                 return files.length == 0 ? resolve([]) : resolve(files);
         });
-    });
-}
-
-// CTRL + C detection
-process.on('SIGINT', async () => {
-    rosexit = true;
-    try {
-        await MONGO.save_classes(client.collection('classes'), classes, class_to_color, sub_classes);
-        await MONGO.save_bounding_box(client.collection('bounding_box'), bounding_box);
-        process.exit();
-    } catch (e) {
-        console.error(`error on save data on db: ${e}`);
-        prompt_question();
-    }
-});
-
-// QUESTION
-function prompt_question() {
-    const readline = require('readline').createInterface({
-        input: process.stdin,
-        output: process.stdout,
-    });
-    
-    readline.question(`Are you sure you want to exit even if the data has not been saved (y/n)?\n`, async (response) => {
-        if (response.toLocaleLowerCase() == 'y') {
-            readline.close();
-            process.exit();
-        } else
-            roscore = BASH.launch_roscore();
     });
 }
 

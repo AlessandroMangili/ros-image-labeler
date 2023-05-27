@@ -24,15 +24,18 @@ Una volta finito di labellare l'intero set di immagini, è possibile esportarlo 
 
 ## Dipendenze
 
-- Ubuntu 20.04 (consigliata)
+- Ubuntu 20.04
 - [ROS noetic](http://wiki.ros.org/noetic/Installation/Ubuntu)
   - Installazione `ros-noetic-desktop`
   - Pacchetti aggiuntivi `ros-noetic-mongodb-store` e `ros-noetic-mongodb-log`
-- [NodeJS](https://www.digitalocean.com/community/tutorials/how-to-install-node-js-on-ubuntu-20-04) versione consigliata `14.21.3`  
-  - Prima eseguire`npm uninstall opencv4nodejs` per rimuovere tutte le dipendenze e poi `npm install opencv4nodejs`. \
-    Per poter aggiungere `opencv4nodejs`, bisogna prima avere __cmake__ e __git__ installati
-- Per far funzionare i pacchetti `mongodb_store` e `mongodb_log`, bisogna installare:
-  - `python-is-python3`
+- [NodeJS](https://www.digitalocean.com/community/tutorials/how-to-install-node-js-on-ubuntu-20-04) versione consigliata `14.21.3`
+  - Libreire da installare :
+    - `npm install opencv4nodejs` (per poter aggiungere la libreria, bisogna prima avere __cmake__ e __git__ installati)
+    - `npm install express`
+    - `npm install mongoose`
+    - `npm install socket.io`
+- Per far funzionare i pacchetti ros di `mongodb_store` e `mongodb_log`, bisogna installare:
+  - `sudo apt install python-is-python3`
   - `pip install pymongo==2.7`
 
 ## Consigli

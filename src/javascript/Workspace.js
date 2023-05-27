@@ -14,8 +14,7 @@ var image_sequence;         // Keep the actual image sequence
 var first = 0;
 var last = 10000;
 
-var last_id_bounding_box;   // Keep the actual last id of bounding box
-var bounding_box = {};
+var bounding_box = [];
 
 // Show popup when the button is clicked
 document.getElementById('add_class').addEventListener('click', (e) => {
@@ -24,65 +23,45 @@ document.getElementById('add_class').addEventListener('click', (e) => {
 
 // Change the target when the topic is selected
 select_topic.addEventListener('change', (e) => {
-    bounding_box[select_topic.value] = bounding_box[select_topic.value] || {};
+    localStorage.setItem('topic', e.currentTarget.value);
+    localStorage.removeItem('image_sequence');
     get_first_last_seq(e.currentTarget.value);
     remove_local_bounding_box();
     
-    get_bounding_box({topic: e.currentTarget.value, image: image_sequence});
+    get_bounding_box(e.currentTarget.value, image_sequence);
     keeper_image_number.innerText = `${0}/${last-first}`;
-    counter = 0;
 });
 
 // When you load the page, load the first image of that topic and get the saved classes and bounding box
 $('#workspace').ready((e) => {
     get_all_topics();
     get_classes();
-    fill_bounding_box_array();
-    counter = 0;
 });
 
 // Scroll through images back and forth
 $('#workspace').on('keydown', async (e) => {
     if (e.keyCode == 188 && image_sequence > first) { // , prev
-        get_image({topic : select_topic.value, seq : --image_sequence}, 'P');
-        remove_local_bounding_box();
-        get_bounding_box({topic: select_topic.value, image: image_sequence});
+        get_image(select_topic.value, --image_sequence, 'P');
+        get_bounding_box(select_topic.value, image_sequence);
         keeper_image_number.innerText = `${image_sequence-first}/${last-first}`;
+        localStorage.setItem('image_sequence', Number(localStorage.getItem('image_sequence')) - 1);
         tr.nodes([]);
     } else if (e.keyCode == 190 && image_sequence < last) { // . next
-        get_image({topic : select_topic.value, seq : ++image_sequence}, 'N');
-
-        let bx_save = layer.getChildren(node => {return node._id > 14 && node.className != 'Text';});
-        remove_local_bounding_box();
-
-        // If checked, save all local bounding box
-        if (local_bounding.checked) {
-            bounding_box[select_topic.value] = bounding_box[select_topic.value] || {};
-            bounding_box[select_topic.value][image_sequence] = bounding_box[select_topic.value][image_sequence] || [];
-
-            bx_save.forEach(rect => {
-                let old_id = get_id_prev_image(rect.toObject());
-
-                if (old_id >= 0 && !exist_bounding_box_by_id(old_id)) {
-                    bounding_box[select_topic.value][image_sequence].push({rect : rect.toObject(), id : old_id});
-                    add_bounding_box({topic: select_topic.value, image: image_sequence, bounding_box: bounding_box[select_topic.value][image_sequence][bounding_box[select_topic.value][image_sequence].length - 1]});   
-                }
-            });
-        }
-
-        get_bounding_box({topic: select_topic.value, image: image_sequence});
+        get_image(select_topic.value, ++image_sequence, 'N');
+        get_only_bounding_box(select_topic.value, image_sequence);
         keeper_image_number.innerText = `${image_sequence-first}/${last-first}`;
+        localStorage.setItem('image_sequence', Number(localStorage.getItem('image_sequence')) + 1);
         tr.nodes([]);
     }
 });
 
 // Create class
-function create_class(msg) {
+function create_class(name, color) {
     var node = document.createElement('a');
-    node.innerHTML = msg.name;
+    node.innerHTML = name;
     node.className = 'list-group-item list-group-item-action';
-    node.title = msg.color;
-    node.style.color = msg.color;
+    node.title = color;
+    node.style.color = color;
     node.style.borderWidth = 'medium';
 
     node.addEventListener('click', (e) => {
@@ -95,26 +74,19 @@ function create_class(msg) {
             return;
         }
 
-        class_name = msg.name;  
-        color_pick = msg.color;
+        class_name = name;  
+        color_pick = color;
         sub_class_name = '';
 
         list_sub_class.style.visibility = '';
 
-        get_sub_classes(msg.name);
+        get_sub_classes(name);
         set_selection(list_class, e.target);
     });
 
     node.addEventListener('dblclick', (e) => {
-        remove_class({name : msg.name, color : msg.color});
+        remove_class(name);
         list_class.removeChild(e.target);
-
-        remove_local_bounding_box();
-
-        get_sub_classes(msg.name);
-
-        get_bounding_box({topic: select_topic.value, image: image_sequence});
-
         class_name = '';
     });
 
@@ -141,13 +113,8 @@ function create_sub_class(sub_name) {
     });
 
     node.addEventListener('dblclick', (e) => {
-        remove_sub_class({name : class_name, sub_name : sub_name});
+        remove_sub_class(class_name, sub_name);
         list_sub_class.removeChild(e.target);
-
-        remove_local_bounding_box();
-
-        get_bounding_box({topic: select_topic.value, image: image_sequence});
-
         sub_class_name = '';
     });
 
@@ -184,31 +151,18 @@ function fill_topics(topics) {
 }
 
 // Get id of the respective bounding box
-function get_id_by_bounding_box(rect) {
-    for (let i = 0; i < bounding_box[select_topic.value][image_sequence].length; i++)
-        if (JSON.stringify(rect) === JSON.stringify(bounding_box[select_topic.value][image_sequence][i].rect)) 
-            return bounding_box[select_topic.value][image_sequence][i].id;
-    return -1;
+function get_id_by_bounding_box(array, rect) {
+    let res = array.find(item => {
+        return JSON.stringify(rect) === JSON.stringify(item.rect);
+    });
+    if (res == undefined)
+        return -1;
+    return res.id;
 }
 
-// Get the index of the bounding box into the array
-function get_index_by_id(id) {
-    for (let i = 0; i < bounding_box[select_topic.value][image_sequence].length; i++)
-        if (id == bounding_box[select_topic.value][image_sequence][i].id)
-            return i;
-    return -1;
-}
-
-function get_id_prev_image(rect) {
-    for (let i = 0; i < bounding_box[select_topic.value][image_sequence - 1].length; i++)
-        if (JSON.stringify(rect) === JSON.stringify(bounding_box[select_topic.value][image_sequence - 1][i].rect))
-            return bounding_box[select_topic.value][image_sequence - 1][i].id;
-    return -1;
-}
-
-function exist_bounding_box_by_id(id) {
-    for (let i = 0; i < bounding_box[select_topic.value][image_sequence].length; i++)
-        if (bounding_box[select_topic.value][image_sequence][i].id == id)
+function exist_bounding_box_by_id(array, id) {
+    for (let i = 0; i < array.length; i++)
+        if (array[i].id == id)
             return true;
     return false;
 }
