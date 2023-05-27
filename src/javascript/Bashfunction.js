@@ -60,23 +60,6 @@ module.exports = {
 
         return mongodb;
     },
-
-    // Function for extract all topics from bag file
-    /*info_rosbag : function(path) {
-        let info = subProcess.spawnSync(
-            `rosbag info ${path}.bag`,
-            {shell : true}
-        );
-
-        let result = info.output.toString();
-        let string = result.slice(result.search('topics'), result.length - 2);
-
-        string.split('\n').slice(2).forEach(topic => {
-            let split = topic.trim().split(' ')[0];
-            if (split.indexOf('image_raw') >= 0)
-                topics.push(split);
-        });
-    },*/
     
     // Function for start the mongodb_log command
     launch_log : function() {
