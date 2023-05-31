@@ -40,8 +40,7 @@ RUN source $NVM_DIR/nvm.sh \
     && nvm alias default $NODE_VERSION \
     && nvm use default
 
-# Uninstall and install opencv4nodejs
-RUN npm uninstall opencv4nodejs && npm install opencv4nodejs
+RUN npm install
 
 # Install ros noetic and mongodb store and log packages
 RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' \ 

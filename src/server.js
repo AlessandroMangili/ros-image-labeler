@@ -15,17 +15,6 @@ const server = http.createServer(app);
 const io = new Server(server);
 const port = process.env.PORT || 8000;
 
-<<<<<<< HEAD
-const classes = [];
-const sub_classes = {};
-const bounding_box = {};
-
-var last_image_seq = 0;
-
-// contains the connection with the mongodb local instance 
-var client;
-=======
->>>>>>> master
 // contains process of command mongodb_store.launch 
 var mongodb;
 // contains process of command roscore
@@ -104,20 +93,8 @@ io.on('connection', (socket) => {
     // Send the buffer that encode image
     socket.on('get image', async(msg, callback) => {
         try {
-<<<<<<< HEAD
-            let document = await client.collection(msg.topic).findOne({'header.seq' : msg.seq});
-            
-            /* DA DECOMMENTARE PER SALVARE IMMAGINE 
-            if (Object.keys(bounding_box).length != 0 && document != null) 
-                IMAGE.save_bounding_image(IMAGE.create_image_buffer(document), bounding_box[msg.topic][last_image_seq]);
-            */
-           
-            last_image_seq = msg.seq;
-            callback(IMAGE.create_image_buffer(document));
-=======
             let result = await MONGO.get_image(msg.topic, msg.seq);
             callback(IMAGE.create_image_buffer(result));
->>>>>>> master
         } catch (e) {
             console.error(`error on encoding image: ${e}`);
             callback(`error on encoding image: ${e}`);

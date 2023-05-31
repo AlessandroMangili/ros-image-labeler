@@ -14,11 +14,11 @@ In alto del riquadro possiamo trovare due funzionalità: una selezione per cambi
 Come intestazione della colonna di sisnitra troviamo un pulsante che ci permette di creare una classe per i bounding box con il rispettivo colore, mentre nella colonna di destra, è presente una checkbox da spuntare ogni qualvolta si ha la necessità di dover creare delle sottoclassi per migliorare la granularità dell'annotazione.
 
 Prima di poter disegnare un buonding box è necessario creare una o più classi per poi selezionarle. \
-Tramite la combinazione di tasti `ctrl + click mouse` e trascinando il mouse sarà possibile creare i bounding box.
+Tramite la combinazione di tasti `ctrl + click mouse` e trascinando il mouse sarà possibile creare i bounding box, invece per passare all'immagine successiva o precedente è sufficiente premere rispettivamente i tasti `.` e `,`.
 
 Sui bounding box è possibile compiere le operazioni di traslazione e ridimensionamento; inoltre è possibile selezionandoli, rimuoverli premendo il tasto `canc`. Per rimuovere tutti i bounding box di una classe/sottoclasse, è sufficiente fare doppio click su di essa in modo tale cancellare tutti i bounding box relativi a quella classe/sottoclasse.
 
-Si può sempre interrompere il lavoro per poi riprendere in un secondo momento in quanto i dati delle classi, sottoclassi e bounding box sono salvati nell'istanza locale di MongoDB, all'interno del database `roslog`. Per il salvataggio è sufficiente ritornare alla homepage oppure usare la combinazione di tasti `CTRL + C` sul server nodejs.
+Si può sempre interrompere il lavoro per poi riprendere in un secondo momento in quanto i dati delle classi, sottoclassi e bounding box sono salvati nell'istanza locale di MongoDB, all'interno del database `roslog`.
 
 Una volta finito di labellare l'intero set di immagini, è possibile esportarlo dell'istanza locale di MongoDB.
 
