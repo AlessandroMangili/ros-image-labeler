@@ -42,24 +42,24 @@
 
         <!-- Class popup -->
         <form>
-            <div id="class_dialog" title="Set the class">
-                <div style="align-items: center;">
-                    <label>Set the name of the class: </label>
-                    <input type="text" id="class_name" value="">
+            <div id="class_dialog">
+                <div style="padding-bottom: 10px;">
+                    <label style="padding-bottom: 3px;">Set the class name</label>
+                    <input type="text" class="form-control" id="class_name" value=""/>
                 </div>
-                <div style="text-align:center;">
-                    <label>Set the color of the class: </label>
-                    <input type="color" id="class_color">
+                <div style="text-align: center;">
+                    <label style="padding-bottom: 3px;">Set the class color</label>
                 </div>
+                <input type="color" class="form-control form-control-color" title="Choose class color" id="class_color"/>
             </div>
         </form>
 
         <!-- Sub-class popup -->
         <form>
-            <div id="sub_class_dialog" title="Set the subclass">
+            <div id="sub_class_dialog">
                 <div style="align-items: center;">
-                    <label>Set the name of the subclass: </label>
-                    <input type="text" id="sub_class_name" value="">
+                    <label style="padding-bottom: 3px;">Set the subclass name</label>
+                    <input type="text" class="form-control" id="sub_class_name" value="">
                 </div>
             </div>
         </form>
@@ -79,10 +79,21 @@
                     <label class="form-check-label"> Keep bounding box </label>
                 </div>
             </div>
+            <div class="col">
+                <button type="button" id="reset_image" class="btn btn-primary btn-sm">Reset to first image</button>
+                <button type="button" id="load_last_image" class="btn btn-primary btn-sm">Reload from last image</button>
+            </div>
         </div>
 
         <div class="col_image">
-            <label id="image_sequence">/</label>
+            <div class="fps">
+                <label class="fps_text">FPS</label>
+                <input type="number" class="form-control" id="image_fps" min="1" value="1" />
+            </div>
+            <div class="sequence">
+                <label id="image_sequence">/</label>
+            </div>
+            <p id="warning"></p>
         </div>
         
         <script type="text/javascript" src="../javascript/Socketfunction.js"></script>

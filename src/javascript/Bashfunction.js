@@ -45,17 +45,6 @@ module.exports = {
             console.log(`error from mongodb server : ${data}`);
         });
 
-        mongodb.on('exit', (code, signal) => {
-            if (code) {
-                console.error('mongodb server exited with code', code);
-                return;
-            } else if (signal) {
-                console.error('mongodb server was killed with signal', signal);
-                return;
-            }
-            console.log(`mongodb server exit normally`);
-        });
-
         console.log('SERVER MONGODB START');
 
         return mongodb;
@@ -64,8 +53,7 @@ module.exports = {
     // Function for start the mongodb_log command
     launch_log : function() {
         let log = subProcess.spawn(
-            `rosrun mongodb_log mongodb_log.py -a` , 
-            //[topics.toString().replace(',', ' ')],
+            `rosrun mongodb_log mongodb_log.py -a`,
             {shell : true, detached : true}
         );
 
@@ -77,10 +65,6 @@ module.exports = {
                 console.error('log node was killed with signal', signal);
                 return;
             }
-        });
-
-        log.stdout.on('data', (data) => {
-            console.log(`read data from log node : ${data}`);
         });
 
         log.stdout.on('error', (data) => {
@@ -108,5 +92,47 @@ module.exports = {
         });
 
         return bag;
+    },
+
+    info_rosbag : function(path) {
+        let info = subProcess.spawnSync(
+            `rosbag info ${path}.bag`,
+            {shell : true}
+        );
+
+        let result = info.output.toString();
+        let string = result.slice(result.search("topics"), result.length - 2);
+
+        let topics = [];
+
+        string.split('\n').slice(2).forEach(topic => {
+            let split = topic.trim().split(' ')[0];
+            if (split.indexOf("image_raw") >= 0)
+                topics.push(split);
+        });
+
+        return topics;
+    },
+
+    mongo_shell: function(port) {
+        let mongo = subProcess.spawnSync(
+            `mongo mongodb://localhost:${port}/roslog`,
+            {shell : true, input : 'db.getCollectionNames();'}
+        );
+        
+        let result = mongo.output.toString();
+        // result.length - 7 for removing the last character that are: ]\nbye\n,
+        let string = result.slice(result.search("MongoDB server"), result.length - 8);
+
+        let topics = [];
+        
+        string.split('\n').slice(2).forEach(collection => {
+            let split = collection.trim().replace(/",/, '').replace(/"/, '');
+            split = split.replace(/"/, '');
+            if (split.indexOf("image_raw") >= 0)
+                topics.push(split);
+        });
+
+        return topics;
     }
 }

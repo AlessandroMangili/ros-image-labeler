@@ -17,43 +17,61 @@ function get_all_topics() {
         else 
             select_topic.value = localStorage.getItem('topic');
         
-        get_first_last_seq(select_topic.value);
+        get_all_sequence_numbers(select_topic.value, fps.value);
     });
 }
 
-// Get the first sequence number of the topic
-function get_first_last_seq(topic) {
-    socket.emit('get first_last_seq', topic, (res) => {
-        if (String(res).indexOf('error') >= 0 || Object.keys(res).length == 0) {
+// Get all sequence numbers of the topic
+function get_all_sequence_numbers(topic, fps) {
+    socket.emit('get all sequence numbers', {topic: topic, fps: fps}, (res) => {
+        if (String(res).indexOf('error') >= 0) {
             alert(res);
             window.location.href = '/';
             console.error(res);
             return;
         }
+        images = res;
+        set_fps(select_topic.value, fps);
+    });
+}
 
-        first = res.first;
-        last = res.last
-
-        if (localStorage.getItem('image_sequence') == null) {
-            image_sequence = res.first;
-            localStorage.setItem('image_sequence', image_sequence);
-            keeper_image_number.innerText = `${0}/${last-first}`;
-        } else {
-            image_sequence = Number(localStorage.getItem('image_sequence'));
-            keeper_image_number.innerText = `${image_sequence-first}/${last-first}`;
+function load_last_image_sequence(topic) {
+    socket.emit('load last image sequence', {topic: topic}, (res) => {
+        if (String(res).indexOf('error') >= 0) {
+            console.error(res);
+            return;
         }
 
-        get_image(select_topic.value, image_sequence);
-        get_bounding_box(select_topic.value, image_sequence);
+        let counter = 0;
+        if (res >= 0) {
+            for (let i = 0; i < image_numbers.length; i++) {
+                if (image_numbers[i] == res) {
+                    index = counter;
+                    break;
+                } else if (image_numbers[i] > res) {
+                    // Dato che con i correnti fps non si ha salvato un valore, allora prendiamo quello all'immagine precedente
+                    index = counter - 1;
+                    break;
+                }
+                counter++;
+            }
+             // Se gli fps sono troppo pochi e siamo già arrivati in fondo
+            if (counter == image_numbers.length)
+                index = image_numbers.length - 1;
+        } else
+            index = 0;
+
+        keeper_image_number.innerText = `${index}/${image_numbers.length - 1}`;
+        get_image(select_topic.value, image_numbers[index]);
+        get_bounding_box(select_topic.value, image_numbers[index]);
     });
 }
 
 // Get the image from topic and sequence number and show it
-function get_image(topic, image, mode) {
+function get_image(topic, image) {
     socket.emit('get image', {topic: topic, seq : image}, (res) => {
         if (res.indexOf('error') >= 0) {
-            if (image_sequence < first) {
-                localStorage.removeItem('image_sequence');
+            if (index < 0) {
                 window.location.href = '/draw';
                 console.error(res);
                 return;
@@ -93,7 +111,7 @@ function add_bounding_box_with_id(topic, image, rect, id) {
             console.error(res);
             return;
         }
-        get_bounding_box(select_topic.value, image_sequence);
+        get_bounding_box(select_topic.value, image_numbers[index]);
     });
 }
 
@@ -104,7 +122,7 @@ function add_bounding_box(topic, image, rect) {
             console.error(res);
             return;
         }
-        get_bounding_box(select_topic.value, image_sequence);
+        get_bounding_box(select_topic.value, image_numbers[index]);
     });
 }
 
@@ -154,10 +172,10 @@ function get_only_bounding_box(topic, image) {
         if (local_bounding.checked) {
             old_bounding_box.forEach(rect => {
                 if (rect.id >= 0 && !exist_bounding_box_by_id(res, rect.id))
-                    add_bounding_box_with_id(select_topic.value, image_sequence, rect.rect, rect.id);
+                    add_bounding_box_with_id(select_topic.value, image_numbers[index], rect.rect, rect.id);
             });
         }
-        get_bounding_box(select_topic.value, image_sequence);
+        get_bounding_box(select_topic.value, image_numbers[index]);
     });
 }
 
@@ -202,6 +220,13 @@ function get_bounding_box(topic, image) {
 
             // On trasform start, get the position of the rect
             rect.on('transformstart', (e) => {
+                e.evt.preventDefault();
+
+                if (tr.nodes().length > 1) {
+                    tr.nodes([]);
+                    return;
+                }
+
                 update_rect = {
                     attrs : {
                         x : e.currentTarget.getPosition().x,
@@ -214,7 +239,9 @@ function get_bounding_box(topic, image) {
             });
 
             // On trasform end, update the position of the rect into the server
-            rect.on('transformend', (e) => {
+            rect.on('transformend', (e) => {  
+                e.evt.preventDefault();
+                          
                // For removing the scaling of rect and set the correct width and height
                 e.currentTarget.setAttrs({
                     width : e.currentTarget.width() * e.currentTarget.scaleX(),
@@ -230,14 +257,21 @@ function get_bounding_box(topic, image) {
                         width : e.currentTarget.width(),
                     });
 
-                    update_bounding_box(select_topic.value, image_sequence, update_rect, e.currentTarget.toObject());
+                    update_bounding_box(select_topic.value, image_numbers[index], update_rect, e.currentTarget.toObject());
                 } else
-                    get_bounding_box(select_topic.value, image_sequence);
+                    get_bounding_box(select_topic.value, image_numbers[index]);
+                    
                 tr.nodes([]);
             });
 
             // On drag start, get the position of the rect
             rect.on('dragstart', (e) => {
+                e.evt.preventDefault();
+
+                if (tr.nodes().length > 1) {
+                    tr.nodes([]);
+                }
+
                 update_rect = {
                     attrs : {
                         x : e.currentTarget.getPosition().x,
@@ -251,6 +285,8 @@ function get_bounding_box(topic, image) {
 
             // On drag end, update the position of the rect into the server
             rect.on('dragend', (e) => {
+                e.evt.preventDefault();
+
                 if (!is_out_border(e.currentTarget)) {
                     text.setAttrs({
                         x : e.currentTarget.x(),
@@ -258,7 +294,7 @@ function get_bounding_box(topic, image) {
                         width : e.currentTarget.width(),
                     });
                     
-                    update_bounding_box(select_topic.value, image_sequence, update_rect, e.currentTarget.toObject());
+                    update_bounding_box(select_topic.value, image_numbers[index], update_rect, e.currentTarget.toObject());
                 } else {
                     e.currentTarget.setAttrs({
                         x: update_rect.attrs.x,
@@ -284,7 +320,7 @@ function remove_class(name) {
         }
         
         clear_sub_classes_sidebar();
-        get_bounding_box(select_topic.value, image_sequence);
+        get_bounding_box(select_topic.value, image_numbers[index]);
     });
 }
 
@@ -294,7 +330,7 @@ function remove_sub_class(name, sub_name) {
         if (res.indexOf('error') >= 0)
             console.error(res);
         
-        get_bounding_box(select_topic.value, image_sequence);
+        get_bounding_box(select_topic.value, image_numbers[index]);
     });
 }
 
@@ -306,7 +342,7 @@ function remove_bounding_box(topic, image, id) {
             console.error(res);
             return;
         }
-        get_bounding_box(select_topic.value, image_sequence);
+        get_bounding_box(select_topic.value, image_numbers[index]);
     });
 }
 
@@ -318,7 +354,7 @@ function update_bounding_box(topic, image, old_rect, new_rect) {
             console.error(res);
             return;
         }
-        get_bounding_box(select_topic.value, image_sequence);
+        get_bounding_box(select_topic.value, image_numbers[index]);
     });
 }
 
@@ -335,6 +371,25 @@ function save_bag_into_mongo(filename) {
     });
 }
 
+// Send all the bag files inside bag_file folder
+function get_bag_files() {
+    socket.emit('get bag files', '', (res) => {
+        if (res.indexOf('error') >= 0) {
+            console.error(res);
+            return;
+        }
+        
+        res.forEach(file => {
+            if (file.indexOf('.') >= 0) {
+                var node = document.createElement('option');
+                node.value = file.split('.')[0];
+                node.innerText = file.split('.')[0];
+                input_bag.appendChild(node);
+            }
+        });
+    });
+}
+
 // Get all local instaces
 function get_db() {
     socket.emit('get db', '', (res) => {
@@ -343,10 +398,10 @@ function get_db() {
             return;
         }
         
-        res.forEach(collection => {
+        res.forEach(file => {
             var node = document.createElement('option');
-            node.value = collection;
-            node.innerText = collection;
+            node.value = file;
+            node.innerText = file;
             db.appendChild(node);
         });
     });

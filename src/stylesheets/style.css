@@ -23,7 +23,8 @@
 }
 
 #input_bag, #db {
-    margin-bottom: 5%;
+    margin-bottom: 3%;
+    margin-top: 2%;
 }
 
 @media only screen and (max-width: 1000px) {
@@ -62,10 +63,64 @@
     position: fixed;
     padding-top: 10px;
     padding-bottom: 10px;
-    text-align:center;
-    align-items: center;
-    top: 90%;
-    left:50%;
+    top: 85%;
+    left: 32%;
+    width: 40%;
+}
+
+.ui-dialog .ui-dialog-title {
+  text-align: center;
+}
+
+.ui-dialog .ui-dialog-buttonpane { 
+    text-align: center;
+}
+.ui-dialog .ui-dialog-buttonpane .ui-dialog-buttonset { 
+    float: none;
+}
+
+#class_dialog {
+    text-align: center;
+}
+
+#class_color {
+    max-width: 30%; 
+    width: 30%; 
+    display: initial;
+}
+
+.fps {
+    display: inline-block;
+    width: 20%;
+}
+
+#image_fps {
+    text-align: center;
+    border-radius: 4px;
+}
+
+.fps_text {
+    position: relative;
+    max-width: 80px;
+    background: #ffffff;
+    top: 10px;
+    left: 20px;
+    z-index: 4;
+    color: black;
+}
+
+input[type="number"][disabled] {
+    background-color: white;
+ }
+
+.sequence {
+    display: inline-flex;
+    left: 45%;
+}
+
+#warning {
+    padding-top: 2%;
+    color: red;
 }
 
 #sidebar-right {
@@ -97,14 +152,17 @@
 }
 
 .col {
-    padding-top: 10px;
-    padding-bottom: 10px;
+    padding-top: 1%;
+    padding-bottom: 1%;
 }
 
 .container {
-    width: 55%;
-    align-items: center;
+    width:55%;
     text-align:center;
+}
+
+button {
+    margin: 1%;
 }
 
 .list-group-item {
@@ -123,9 +181,44 @@ header {
     text-decoration: none;
 }
 
+@media only screen and (max-height: 630px) {
+    .col {
+        padding-top: 2px;
+        padding-bottom: 2px;
+    }
+
+    #load_last_image, #reset_image {
+        visibility: visible;
+    }
+}
+
+@media only screen and (max-height: 500px) {
+    #load_last_image, #reset_image {
+        visibility: hidden;
+    }
+}
+
+@media only screen and (max-width: 1000px) {
+    .fps_text {
+        left: 10px;
+    }
+}
+
 @media only screen and (max-width: 830px) {
     #topics {
         width: 65%;
+    }
+
+    .fps {
+        width: 25%;
+    }
+
+    #image_fps {
+        text-align: left;
+    }
+
+    .col_image {
+        left: 32%;
     }
 }
 
@@ -133,11 +226,27 @@ header {
     #topics {
         width: 75%;
     }
+
+    .fps_text {
+        left: 5px;
+    }
+
+    .fps {
+        width: 32%;
+    }
 }
 
 @media only screen and (max-width: 530px) {
     #topics {
         width: 90%;
+    }
+
+    .fps {
+        width: 34%;
+    }
+
+    .col_image {
+        left: 28%;
     }
 }
 

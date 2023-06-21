@@ -44,32 +44,35 @@ io.on('connection', (socket) => {
     socket.on('save_bag', async (msg, callback) => {
         access_garanteed = false;
 
-        // Check if the bag file exist in bag_file folder or not
-        if(!fs.existsSync(PATH.join(__dirname, 'bag_file', `${msg}.bag`))) {
-            console.error(`${msg}.bag does not exist in folder \'bag_file\'`);
-            callback(`${msg}.bag does not exist in folder \'bag_file\'`);
-            return;
-        }
-
         // Check if the folder of local instance is empty or not
         if (!await folder_is_empty(PATH.join(__dirname, 'db', msg))) {
-            console.warn('There is already a local repository of that file, if you want to save again, delete the folder');
-            callback('There is already a local repository of that file, if you want to save again, delete the folder');
+            console.warn('error, there is already a local repository of that file, if you want to save again, delete the folder');
+            callback('error, there is already a local repository of that file, if you want to save again, delete the folder');
             return;
         }
-
+    
         // '-' is for kill all subprocess of that process and awit is for handle the promise
         if (mongodb) {
             try {
                 await process.kill(-mongodb.pid);
+
+                mongodb.on('exit', (code, signal) => {
+                    if (code) {
+                        console.error('mongodb server exited with code', code);
+                        return;
+                    } else if (signal) {
+                        console.error('mongodb server was killed with signal', signal);
+                        setTimeout(() => {create_local_db(msg, callback)}, 2500);
+                        return;
+                    }
+                    setTimeout(() => {create_local_db(msg, callback)}, 2500);
+                    return;
+                });
             } catch (e) {
                 console.log(`Error on kill process ${e}`);
             }
-            setTimeout(() => {create_local_db(msg, callback)}, 2000);
-            return;
-        }
-
-        create_local_db(msg, callback);
+        } else
+            create_local_db(msg, callback);
     });
 
     // Return all valid topics (image_raw) of the current local instace
@@ -82,9 +85,18 @@ io.on('connection', (socket) => {
     });
 
     // Send the first sequence number of that topic
-    socket.on('get first_last_seq', async (msg, callback) => {
+    socket.on('get all sequence numbers', async (msg, callback) => {
         try {
-            callback(await MONGO.get_first_last_seq(msg));
+            callback(await MONGO.get_all_image_sequence_numbers(msg.topic, msg.fps));
+        } catch (e) {
+            callback(String(e));
+        }
+    });
+
+    socket.on('load last image sequence', async (msg, callback) => {
+        try {
+            let document = await MONGO.get_db_info(msg.topic);
+            callback(document == null ? -1 : document.seq);
         } catch (e) {
             callback(String(e));
         }
@@ -93,11 +105,22 @@ io.on('connection', (socket) => {
     // Send the buffer that encode image
     socket.on('get image', async(msg, callback) => {
         try {
-            let result = await MONGO.get_image(msg.topic, msg.seq);
+            await MONGO.update_db_info(msg.topic, msg.seq);
+            result = await MONGO.get_image(msg.topic, msg.seq);
             callback(IMAGE.create_image_buffer(result));
         } catch (e) {
             console.error(`error on encoding image: ${e}`);
             callback(`error on encoding image: ${e}`);
+        }
+    });
+
+    // Send all the local instace of mongodb
+    socket.on('get bag files', async (_, callback) => {
+        try {
+            callback(await list_file_folder(PATH.join(__dirname, 'bag_file')));
+        } catch (e) {
+            console.error(`error on getting bag files: ${e}`);
+            callback(`error on getting bag files: ${e}`);
         }
     });
 
@@ -122,15 +145,24 @@ io.on('connection', (socket) => {
         if (mongodb) {
             try {
                 await process.kill(-mongodb.pid);
+
+                mongodb.on('exit', (code, signal) => {
+                    if (code) {
+                        console.error('mongodb server exited with code', code);
+                        return;
+                    } else if (signal) {
+                        console.error('mongodb server was killed with signal', signal);
+                        setTimeout(() => {connect_db(path, callback)}, 2500);
+                        return;
+                    }
+                    setTimeout(() => {connect_db(path, callback)}, 2500);
+                    return;
+                });
             } catch (e) {
                 console.log(`Error on kill process ${e}`);
             }
-            
-            setTimeout(() => {connect_db(path, callback)}, 2000);
-            return;
-        }
-
-        connect_db(path, callback);
+        } else
+            connect_db(path, callback);
     });
 
     // HANDLE BOUNDING BOX
@@ -252,42 +284,132 @@ io.on('connection', (socket) => {
 
 function create_local_db(msg, callback) {
     // Create the path to save the db instace
-    let path = PATH.join(__dirname, 'db', msg);
-    create_folder(path);
+    let pathFolder = PATH.join(__dirname, 'db', msg);
+    create_folder(pathFolder);
     // Start command mongodb_store.launch (server)
-    mongodb = BASH.launch_mongodb(path, 62345);
+    mongodb = BASH.launch_mongodb(pathFolder, 62345);
 
     // The timeout is to wait for the mongodb server to start
     setTimeout(() => {
-        path = PATH.join(__dirname, 'bag_file', msg);
+        let pathBag = PATH.join(__dirname, 'bag_file', msg);
 
         // Start command mongodb_log
         let log = BASH.launch_log();
         // Start command rosbag play 
-        let bag = BASH.launch_rosbag_play(path);
+        let bag = BASH.launch_rosbag_play(pathBag);
 
+        // Check if bag command has been killed or just terminated
+        let bag_killed = false;
+
+        // end is for checking if length of the bag file is less than 6 seconds
+        let first = true, end = false;
+        let log1;
+
+        log.stdout.on("data", (data) => {
+            console.log(`read data from log node : ${data}`);
+            // When the log node add succesfully the topics, then we can starts
+            if (first) {
+                setTimeout(async () => {
+                    // Stop the play of bag file
+                    bag.stdin.write(" ");
+                    try {
+                        // Kill the old logger
+                        await process.kill(-log.pid);
+
+                        setTimeout(() => {
+                            first = true;
+                            // Start the new logger
+                            log1 = BASH.launch_log();
+                            log1.stdout.on("data", async (data) => {
+                                console.log(`read data from log node : ${data}`);
+                                if (first) {
+                                    // Restart the play of bag file
+                                    bag.stdin.write(" ");
+                                    first = false;
+                                    
+                                    setTimeout(async () => {
+                                        if (!end) {
+                                            let bag_topics = BASH.info_rosbag(pathBag);
+                                            let saved_topics = BASH.mongo_shell(62345);
+                                            let difference = bag_topics.filter(value => !saved_topics.includes(value.charAt(0) == '/' ? value.slice(1).split("/").join("_") : value.split("/").join("_")));
+
+                                            // If the difference between the two arrays is not empty, then restart: bag reading, logger and mongodb server
+                                            // and delete the folder of local instance
+                                            if (difference.length != 0) {
+                                                console.log('MISSING TOPICS');
+                                                console.log(difference);
+                                                fs.rmSync(pathFolder, { recursive: true, force: true });
+
+                                                try {
+                                                    await process.kill(-bag.pid);
+                                                    await process.kill(-log1.pid);
+                                                    await process.kill(-mongodb.pid);
+                                    
+                                                    mongodb.on('exit', (code, signal) => {
+                                                        if (code) {
+                                                            console.error('mongodb server exited with code', code);
+                                                            return;
+                                                        } else if (signal) {
+                                                            console.error('mongodb server was killed with signal', signal);
+                                                            setTimeout(() => {create_local_db(msg, callback)}, 2500);
+                                                            return;
+                                                        }
+                                                        setTimeout(() => {create_local_db(msg, callback)}, 2500);
+                                                        return;
+                                                    });
+                                                } catch (e) {
+                                                    console.log(`Error on kill process ${e}`);
+                                                }
+                                            }
+                                        }
+                                    }, 6000);
+                                }
+                            });
+                        }, 3000);
+                    } catch (e) {
+                        console.log(`error on kill process ${e}`);
+                    }
+                }, 1000);
+                first = false;
+            }
+        });
+
+        bag.on('exit', (code, signal) => {
+            if (code) {
+                console.error('bag node exited with code', code);
+                return;
+            } else {
+                bag_killed = true;
+                console.error('bag node was killed with signal', signal);
+                return;
+            }
+        });
+ 
         // The bag file is over
         bag.stdout.on('end', async () => {
-            console.log(`END READ FILE BAG`);
-            // '-' is for kill all subprocess of that process and awit is for handle the promise
-            try {
-                await process.kill(-log.pid);
-            } catch (e) {
-                console.log(`error on kill process ${e}`);
-            }
-            
-            // Start the connection to mongodb client
-            try {
-                await MONGO.connect();
-                await MONGO.create_collections();
-                access_garanteed = true;
-                callback('connected to mongodb instance');
-            } catch (e) {
-                callback(e);
+            end = true;
+            if (!bag_killed) {
+                console.log(`END READ FILE BAG`);
+                // '-' is for kill all subprocess of that process and await is for handle the promise
+                try {
+                    await process.kill(-log1.pid);
+                } catch (e) {
+                    console.log(`error on kill process ${e}`);
+                }
+                 
+                // Start the connection to mongodb client
+                try {
+                    await MONGO.connect();
+                    await MONGO.create_collections();
+                    access_garanteed = true;
+                    callback('connected to mongodb instance');
+                } catch (e) {
+                    console.error(`error on connection to mongodb: ${e}`);
+                    callback(`error on connection to mongodb: ${e}`);
+                }
             }
         });
     }, 1000);
-    return;
 }
 
 // Connect to local instace, start mongodb server
@@ -301,7 +423,8 @@ async function connect_db(path, callback) {
         access_garanteed = true;
         callback('connected to mongodb instance');
     } catch (e) {
-        callback(e);
+        console.error(`error on connection to mongodb: ${e}`);
+        callback(`error on connection to mongodb: ${e}`);
     }
 }
 
@@ -361,6 +484,20 @@ async function list_file_folder(path) {
         });
     });
 }
+
+
+process.on('SIGINT', async () => {
+    if (mongodb) {
+        try {
+            await process.kill(-mongodb.pid);
+            process.exit();
+        } catch (e) {
+            console.log(`Error on kill process ${e}`);
+            process.exit();
+        }
+    } else 
+        process.exit();
+});
 
 // CONNECTION
 
