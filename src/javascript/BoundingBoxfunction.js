@@ -18,6 +18,7 @@ var layer = new Konva.Layer();
 stage.add(layer);
 
 var tr = new Konva.Transformer({
+    rotateEnabled: false,
     ignoreStroke: true
 });
 layer.add(tr);
@@ -143,7 +144,7 @@ stage.on('mouseup touchend', (e) => {
                             text.text(text.text() + ` ${sname}`);
 
                             sname = '';
-                            add_bounding_box(select_topic.value, image_sequence, rect.toObject());
+                            add_bounding_box(select_topic.value, image_numbers[index], rect.toObject());
                         } else {
                             rect.remove();
                             text.remove();
@@ -153,10 +154,10 @@ stage.on('mouseup touchend', (e) => {
             } else {
                 rect.name(rect.name() + `${sub_class_name}`);
                 text.text(text.text() + ` ${sub_class_name}`);
-                add_bounding_box(select_topic.value, image_sequence, rect.toObject());
+                add_bounding_box(select_topic.value, image_numbers[index], rect.toObject());
             }
         } else {
-            add_bounding_box(select_topic.value, image_sequence, rect.toObject());          
+            add_bounding_box(select_topic.value, image_numbers[index], rect.toObject());          
         }
         
         wantDraw = false;
@@ -225,7 +226,7 @@ container.addEventListener('keydown', (e) => {
 
             node.remove();
 
-            remove_bounding_box(select_topic.value, image_sequence, id);
+            remove_bounding_box(select_topic.value, image_numbers[index], id);
         });
         tr.nodes([]);
     }

@@ -1,7 +1,5 @@
 const cv = require('opencv4nodejs');
 
-let index = 0;
-
 module.exports = {
     create_image_buffer : function(result) {
         if (result == null) 

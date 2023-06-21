@@ -5,16 +5,18 @@ var div_container = document.getElementById('container');
 var select_topic = document.getElementById('topics');
 var local_bounding = document.getElementById('keep_bounding');
 var keeper_image_number = document.getElementById('image_sequence');
+var fps = document.getElementById('image_fps');
+var warning = document.getElementById('warning');
 
 var class_name = '';        // Save the current name of the selected class
 var sub_class_name = '';    // Save the current id of the selected sub_class
 var color_pick = '';        // Save the current color of the selected class
-var image_sequence;         // Keep the actual image sequence
-
-var first = 0;
-var last = 10000;
+var index = 0;              // Keep the actual index of image_numbers array
+var change = false;         // Set true if topic change is done, otherwise false
 
 var bounding_box = [];
+var image_numbers = [];     // Keep all of the image sequence number
+var images = [];
 
 // Show popup when the button is clicked
 document.getElementById('add_class').addEventListener('click', (e) => {
@@ -23,36 +25,52 @@ document.getElementById('add_class').addEventListener('click', (e) => {
 
 // Change the target when the topic is selected
 select_topic.addEventListener('change', (e) => {
+    fps.disabled = true;
+    change = true;
     localStorage.setItem('topic', e.currentTarget.value);
-    localStorage.removeItem('image_sequence');
-    get_first_last_seq(e.currentTarget.value);
+    get_all_sequence_numbers(e.currentTarget.value, fps.value);
     remove_local_bounding_box();
     
-    get_bounding_box(e.currentTarget.value, image_sequence);
-    keeper_image_number.innerText = `${0}/${last-first}`;
+    get_bounding_box(e.currentTarget.value, image_numbers[index]);
 });
 
 // When you load the page, load the first image of that topic and get the saved classes and bounding box
 $('#workspace').ready((e) => {
+    fps.disabled = true;
     get_all_topics();
     get_classes();
 });
 
 // Scroll through images back and forth
 $('#workspace').on('keydown', async (e) => {
-    if (e.keyCode == 188 && image_sequence > first) { // , prev
-        get_image(select_topic.value, --image_sequence, 'P');
-        get_bounding_box(select_topic.value, image_sequence);
-        keeper_image_number.innerText = `${image_sequence-first}/${last-first}`;
-        localStorage.setItem('image_sequence', Number(localStorage.getItem('image_sequence')) - 1);
+    if (e.keyCode == 188 && index > 0) { // , prev
+        get_image(select_topic.value, image_numbers[--index], 'P');
+        get_bounding_box(select_topic.value, image_numbers[index]);
+        keeper_image_number.innerText = `${index}/${image_numbers.length - 1}`;
         tr.nodes([]);
-    } else if (e.keyCode == 190 && image_sequence < last) { // . next
-        get_image(select_topic.value, ++image_sequence, 'N');
-        get_only_bounding_box(select_topic.value, image_sequence);
-        keeper_image_number.innerText = `${image_sequence-first}/${last-first}`;
-        localStorage.setItem('image_sequence', Number(localStorage.getItem('image_sequence')) + 1);
+    } else if (e.keyCode == 190 && index < image_numbers.length - 1) { // . next
+        get_image(select_topic.value, image_numbers[++index], 'N');
+        get_only_bounding_box(select_topic.value, image_numbers[index]);
+        keeper_image_number.innerText = `${index}/${image_numbers.length - 1}`;
         tr.nodes([]);
     }
+});
+
+fps.addEventListener('change', (e) => {
+    set_fps(select_topic.value, e.currentTarget.value);
+    if (image_numbers.length >= images.length)
+        fps.max = e.currentTarget.value;
+});
+
+document.getElementById('reset_image').addEventListener('click', (e) => {
+    index = 0;
+    keeper_image_number.innerText = `${index}/${image_numbers.length - 1}`;
+    get_image(select_topic.value, image_numbers[index], '');
+    get_bounding_box(select_topic.value, image_numbers[index]);
+});
+
+document.getElementById('load_last_image').addEventListener('click', (e) => {
+    load_last_image_sequence(select_topic.value);
 });
 
 // Create class
@@ -160,9 +178,58 @@ function get_id_by_bounding_box(array, rect) {
     return res.id;
 }
 
+// Check if bounding box exists into array by id
 function exist_bounding_box_by_id(array, id) {
     for (let i = 0; i < array.length; i++)
         if (array[i].id == id)
             return true;
     return false;
+}
+
+// Fill image_numbers array based on the chosen FPS
+function set_fps(topic, fps_v) {
+    image_numbers = [];
+    let counter = 0;
+    let last_image = images[0].header.stamp.secs;
+    let err = '';
+
+    images.forEach(image => {
+        if (last_image - image.header.stamp.secs == 0) {
+            if (counter < fps_v) {
+                image_numbers.push(image.header.seq);
+                last_image = image.header.stamp.secs;
+                counter++;
+            }
+        } else if (last_image - image.header.stamp.secs < 0) {
+            if (counter < fps_v)
+                err = `there aren't enough images for one or more topics per second`;
+            image_numbers.push(image.header.seq);
+            last_image = image.header.stamp.secs;
+            counter = 1;
+        } else {
+            console.error(`error on timestamp of topic ${topic}, there is no order between image timestamps`);
+            err = `error on timestamp of topic ${topic}, there is no order between image timestamps`;
+            counter = fps_v;
+            return;
+        }
+    });
+
+    // If the last group of images is < than the actual FPS, then print the error
+    if (counter < fps_v)
+        err = `there aren't enough images for one or more topics per second`;
+
+    if (index >= image_numbers.length)
+        index = image_numbers.length - 1;
+
+    if (change) {
+        load_last_image_sequence(select_topic.value);
+        change = false;
+    } else {
+        get_image(select_topic.value, image_numbers[index]);
+        get_bounding_box(select_topic.value, image_numbers[index]);
+        keeper_image_number.innerText = `${index}/${image_numbers.length - 1}`;
+    }
+    
+    warning.innerText = err;
+    fps.disabled = false;
 }

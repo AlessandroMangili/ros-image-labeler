@@ -4,9 +4,10 @@
 $('#class_dialog').dialog({
     autoOpen: false,
     resizable: false,
+    title: "class",
     buttons: [
         {
-            text: 'Ok',
+            text: 'OK',
             icon: 'ui-icon-check',
             click: function() {
                 try {
@@ -44,6 +45,7 @@ let sname = '';
 $('#sub_class_dialog').dialog({
     autoOpen: false,
     resizable: false,
+    title: "subclass",
     buttons: [
         {
             text: 'Ok',

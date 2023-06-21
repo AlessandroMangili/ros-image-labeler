@@ -36,6 +36,13 @@ const bounding_box_schema = new mongoose.Schema(
     }
 );
 
+const db_info_schema = new mongoose.Schema(
+    {
+        topic : {type: String, unique: true},
+        seq: Number
+    }
+)
+
 module.exports = {
     connect : async function () {
         const URI = `mongodb://localhost:62345/roslog`;
@@ -66,6 +73,8 @@ module.exports = {
             topics.forEach(async topic => {
                 await mongoose.model(`${topic.name}_bounding_box`, bounding_box_schema, `${topic.name}_bounding_box`).createCollection();
             });
+
+            await mongoose.model('db_info', db_info_schema, 'db_info').createCollection();
             console.log('collections created successful');
         } catch (e) {
             console.error(`error on create collection for classes and bounding box: ${e}`);
@@ -91,25 +100,40 @@ module.exports = {
     
             return clone;
         } catch (error) {
-            console.error(`error on retriving topics: ${error}`);
-            throw new Error(`error on retriving topics: ${error}`);
+            console.error(`error on retrive topics: ${error}`);
+            throw new Error(`error on retrive topics: ${error}`);
         }
     },
 
-    get_first_last_seq : async function(topic) {
+    get_all_image_sequence_numbers : async function(topic, fps) {
         try {
             let documents = await mongoose.connection.db.collection(topic).find({}).toArray();
-            
+
+            if (documents.length == 0)
+                throw new Error('there are no images found');
+
             documents.sort((first, second) => {
                 return first.header.seq > second.header.seq ? 1 : (first.header.seq < second.header.seq) ? -1 : 0;
             });
-    
-            if (documents.length == 0 || documents == {})
-                throw new Error('collection is empty');
-            return {first: documents[0].header.seq, last : documents[documents.length - 1].header.seq};
+
+            let images = [];
+            documents.forEach(image => {
+                images.push({header: image.header});
+            })
+
+            return images;
         } catch (error) {
-            console.error(`error on retrive information on first and last sequence image number: ${error}`);
-            throw new Error(`error on retrive information on first and last sequence image number: ${error}`);
+            console.error(`error on retrive images: ${error}`);
+            throw new Error(`error on retrive images: ${error}`);
+        }
+    },
+
+    get_db_info : async function(topic) {
+        try {
+            return await mongoose.model('db_info', db_info_schema, 'db_info').findOne({topic : topic});
+        } catch (error) {
+            console.error(`error on retrive information about last image sequence of topic: ${topic} with the following error: ${error}`);
+            throw new Error(`error on retrive information about last image sequence of topic: ${topic} with the following error: ${error}`);
         }
     },
 
@@ -160,15 +184,12 @@ module.exports = {
             let name = bounding_box.attrs.name.split('-')[0];
             let sub_name = bounding_box.attrs.name.split('-')[1];
             let obj_class = await mongoose.model('classes', classes_schema).findOne({name: name});
-            let id_sub_class = -1;
 
             if (obj_class == null)
                 throw new Error(`the class ${name} of bounding box does not exists`);
 
-            obj_class.subclasses.forEach(subclass => {
-                if (subclass.name == sub_name)
-                    id_sub_class = subclass.id;
-            });
+            let id_sub_class = obj_class.subclasses.find((sub_class) => sub_class.name == sub_name);
+            id_sub_class = id_sub_class == undefined ? -1 : id_sub_class.id;
 
             res = await mongoose.model(`${topic}_bounding_box`, bounding_box_schema, `${topic}_bounding_box`).findOneAndUpdate({seq : image_number}, {$push: {bounding_box: {id : id, id_class : obj_class.id, id_sub_class : id_sub_class, rect : bounding_box}}}, {upsert: true, new: true});
             res = res.bounding_box;
@@ -189,15 +210,12 @@ module.exports = {
             let name = bounding_box.attrs.name.split('-')[0];
             let sub_name = bounding_box.attrs.name.split('-')[1];
             let obj_class = await mongoose.model('classes', classes_schema).findOne({name: name});
-            let id_sub_class = -1;
 
             if (obj_class == null)
                 throw new Error(`the class ${name} of bounding box does not exists`);
 
-            obj_class.subclasses.forEach(subclass => {
-                if (subclass.name == sub_name)
-                    id_sub_class = subclass.id;
-            });
+            let id_sub_class = obj_class.subclasses.find((sub_class) => sub_class.name == sub_name);
+            id_sub_class = id_sub_class == undefined ? -1 : id_sub_class.id;
 
             let id = await get_max_id_bounding_box(`${topic}_bounding_box`);
             res = await mongoose.model(`${topic}_bounding_box`, bounding_box_schema, `${topic}_bounding_box`).findOneAndUpdate({seq : image_number}, {$push: {bounding_box: {id : id + 1, id_class : obj_class.id, id_sub_class : id_sub_class, rect : bounding_box}}}, {upsert: true, new: true});
@@ -312,15 +330,12 @@ module.exports = {
             let name = new_rect.attrs.name.split('-')[0];
             let sub_name = new_rect.attrs.name.split('-')[1];
             let obj_class = await mongoose.model('classes', classes_schema).findOne({name: name});
-            let id_sub_class = -1;
 
             if (obj_class == null)
                 throw new Error(`the class ${name} of bounding box does not exists`);
 
-            obj_class.subclasses.forEach(subclass => {
-                if (subclass.name == sub_name)
-                    id_sub_class = subclass.id;
-            });
+            let id_sub_class = obj_class.subclasses.find((sub_class) => sub_class.name == sub_name);
+            id_sub_class = id_sub_class == undefined ? -1 : id_sub_class.id;
 
             res = await mongoose.model(`${topic}_bounding_box`, bounding_box_schema, `${topic}_bounding_box`).updateOne({seq : image_number}, {$pull: {bounding_box: {id: old_rect.id}}});
             if (res.modifiedCount < 1)
@@ -333,6 +348,17 @@ module.exports = {
         } catch (error) {
             console.error(`error on updating bounding box of ${topic} from db: ${error}`);
             throw new Error(`error on updating bounding box of ${topic} from db: ${error}`);
+        }
+    },
+
+    update_db_info : async function(topic, image_number) {
+        try {
+            let res = await mongoose.model('db_info', db_info_schema, 'db_info').findOne({topic: topic});
+            if (res == null || res.seq <= image_number)
+                await mongoose.model('db_info', db_info_schema, 'db_info').findOneAndUpdate({topic: topic}, {topic: topic, seq: image_number}, {upsert: true, new: true});
+        } catch (error) {
+            console.error(`error on updating db info of ${topic} with the following error: ${error}`);
+            throw new Error(`error on updating db info of ${topic} with the following error: ${error}`);
         }
     },
 }

@@ -14,14 +14,17 @@
     <body id="pageIndex">
         <div class="row">
             <div class="col-6" id="leftCol">
-                <input type="file" class="form-control" id="input_bag" accept=".bag">
+                <label>Select a bag file</label>
+                <select class="form-select" id="input_bag">
+                    <option value="null" selected></option>
+                </select>
                 <button type="button" class="btn btn-primary btn-sm" id="upload">Upload</button>
             </div>
             <div class="col-6 " id="rightCol">
+                <label>Select a dataset</label>
                 <select class="form-select" id="db">
                     <option value="null" selected></option>
                 </select>
-                <label>Select a dataset</label>
             </div>
         </div>
 
@@ -29,11 +32,13 @@
         <script>
             var bag = document.getElementById('input_bag');
             var db = document.getElementById('db');
+            
 
             localStorage.clear();
 
             window.addEventListener('load', () => {
                 get_db();
+                get_bag_files();
             });
             
             db.addEventListener('change', e => {
@@ -43,10 +48,9 @@
 
             document.getElementById('upload').addEventListener('click', e => {
                 e.preventDefault();
-
-                if (bag.value != "" && bag.files[0].name.split('.')[1] == "bag")
-                    save_bag_into_mongo(bag.files[0].name.split('.')[0]);
                 
+                if (bag.value != null)
+                    save_bag_into_mongo(bag.value);
             });
         </script>
     </body>
