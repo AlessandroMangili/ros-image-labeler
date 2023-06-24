@@ -1,1 +1,5 @@
 Dockerfile
+README.md
+.git/*
+.git*
+docker-run.sh
