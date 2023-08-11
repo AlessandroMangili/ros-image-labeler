@@ -88,12 +88,13 @@
         <div class="col_image">
             <div class="fps">
                 <label class="fps_text">FPS</label>
-                <input type="number" class="form-control" id="image_fps" min="1" value="1" />
+                <input type="number" class="form-control" id="image_fps" value="1" min="0.1" step="0.1" />
             </div>
             <div class="sequence">
                 <label id="image_sequence">/</label>
             </div>
             <p id="warning"></p>
+            <button class="btn btn-primary" style="left: 35%;" id="export" type="submit">Export</button>
         </div>
         
         <script type="text/javascript" src="../javascript/Socketfunction.js"></script>

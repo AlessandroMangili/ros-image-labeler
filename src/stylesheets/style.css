@@ -120,6 +120,7 @@ input[type="number"][disabled] {
 
 #warning {
     padding-top: 2%;
+    margin: 0;
     color: red;
 }
 

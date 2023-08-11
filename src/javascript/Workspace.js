@@ -18,6 +18,15 @@ var bounding_box = [];
 var image_numbers = [];     // Keep all of the image sequence number
 var images = [];
 
+// nanosec to sec = nanosec / 1000000000
+const NANOSEC = 1000000000;
+
+
+document.getElementById('export').addEventListener('click', (e) => {
+    export_db();
+    document.getElementById('export').disabled = true;
+});
+
 // Show popup when the button is clicked
 document.getElementById('add_class').addEventListener('click', (e) => {
     $('#class_dialog').dialog('open');
@@ -162,8 +171,8 @@ function load_background_image(buffer) {
 function fill_topics(topics) {
     topics.forEach(topic => {
         var node = document.createElement('option');
-        node.value = topic.name;
-        node.innerText = topic.name;
+        node.value = topic;
+        node.innerText = topic;
         select_topic.appendChild(node);
     });
 }
@@ -186,50 +195,53 @@ function exist_bounding_box_by_id(array, id) {
     return false;
 }
 
+function update_bounding_list(id, new_rect) {
+    // For updating the list bounding_box
+    for(let i = 0; i < bounding_box.length; i++) {
+        if (bounding_box[i].id == id) {
+            bounding_box[i].rect = new_rect;
+        }
+    }
+}
+
 // Fill image_numbers array based on the chosen FPS
 function set_fps(topic, fps_v) {
     image_numbers = [];
-    let counter = 0;
-    let last_image = images[0].header.stamp.secs;
-    let err = '';
+    image_numbers.push(images[0].header.seq);
+    let last_image = images[0];
 
-    images.forEach(image => {
-        if (last_image - image.header.stamp.secs == 0) {
-            if (counter < fps_v) {
+    let delta = 1 / fps_v;
+
+    try {
+        images.slice(1).forEach(image => {
+            if (calculate_seconds(image.header.stamp) - calculate_seconds(last_image.header.stamp) >= delta) {
                 image_numbers.push(image.header.seq);
-                last_image = image.header.stamp.secs;
-                counter++;
+                last_image = image;
             }
-        } else if (last_image - image.header.stamp.secs < 0) {
-            if (counter < fps_v)
-                err = `there aren't enough images for one or more topics per second`;
-            image_numbers.push(image.header.seq);
-            last_image = image.header.stamp.secs;
-            counter = 1;
-        } else {
-            console.error(`error on timestamp of topic ${topic}, there is no order between image timestamps`);
-            err = `error on timestamp of topic ${topic}, there is no order between image timestamps`;
-            counter = fps_v;
-            return;
-        }
-    });
-
-    // If the last group of images is < than the actual FPS, then print the error
-    if (counter < fps_v)
-        err = `there aren't enough images for one or more topics per second`;
-
+        });
+    } catch(err) {
+        console.error(err);
+        return;
+    }
+  
     if (index >= image_numbers.length)
         index = image_numbers.length - 1;
 
+    // Check if the call is made after a change of topic
     if (change) {
-        load_last_image_sequence(select_topic.value);
+        load_last_image_sequence(topic);
         change = false;
     } else {
-        get_image(select_topic.value, image_numbers[index]);
-        get_bounding_box(select_topic.value, image_numbers[index]);
+        get_image(topic, image_numbers[index]);
+        get_bounding_box(topic, image_numbers[index]);
         keeper_image_number.innerText = `${index}/${image_numbers.length - 1}`;
     }
     
-    warning.innerText = err;
     fps.disabled = false;
+}
+
+function calculate_seconds(stamp) {
+    if (stamp == null)
+        throw new Error('timestamp cannot be null');
+    return stamp.secs + (stamp.nsecs / NANOSEC);
 }

@@ -165,6 +165,17 @@ io.on('connection', (socket) => {
             connect_db(path, callback);
     });
 
+    // Export the db into json files
+    socket.on('export db', async (_, callback) => {
+        try {
+            // For getting the name of dataset
+            let pathSplit = mongodb.spawnargs[2].split(' ')[4].split('/');
+            callback(await MONGO.export_dataset(pathSplit[pathSplit.length - 1]));
+        } catch (e) {
+            callback(String(e));
+        }
+    });
+
     // HANDLE BOUNDING BOX
 
     // Add new class
@@ -298,78 +309,53 @@ function create_local_db(msg, callback) {
         // Start command rosbag play 
         let bag = BASH.launch_rosbag_play(pathBag);
 
-        // Check if bag command has been killed or just terminated
+        // Check if bag command has been killed or just ended
         let bag_killed = false;
 
         // end is for checking if length of the bag file is less than 6 seconds
         let first = true, end = false;
-        let log1;
 
         log.stdout.on("data", (data) => {
             console.log(`read data from log node : ${data}`);
             // When the log node add succesfully the topics, then we can starts
-            if (first) {
+            if (first) {  
                 setTimeout(async () => {
-                    // Stop the play of bag file
-                    bag.stdin.write(" ");
-                    try {
-                        // Kill the old logger
-                        await process.kill(-log.pid);
+                    if (!end) {
+                        let bag_topics = BASH.info_rosbag(pathBag);
+                        let saved_topics = BASH.mongo_shell(62345);
+                        let difference = bag_topics.filter(value => !saved_topics.includes(value.charAt(0) == '/' ? value.slice(1).split("/").join("_") : value.split("/").join("_")));
 
-                        setTimeout(() => {
-                            first = true;
-                            // Start the new logger
-                            log1 = BASH.launch_log();
-                            log1.stdout.on("data", async (data) => {
-                                console.log(`read data from log node : ${data}`);
-                                if (first) {
-                                    // Restart the play of bag file
-                                    bag.stdin.write(" ");
-                                    first = false;
-                                    
-                                    setTimeout(async () => {
-                                        if (!end) {
-                                            let bag_topics = BASH.info_rosbag(pathBag);
-                                            let saved_topics = BASH.mongo_shell(62345);
-                                            let difference = bag_topics.filter(value => !saved_topics.includes(value.charAt(0) == '/' ? value.slice(1).split("/").join("_") : value.split("/").join("_")));
+                        // If the difference between the two arrays is not empty, then restart: bag reading, logger and mongodb server
+                        // and delete the folder of local instance
+                        if (difference.length != 0) {
+                            console.log('MISSING TOPICS');
+                            console.log(difference);
+                            // For removing the folder
+                            fs.rmSync(pathFolder, { recursive: true, force: true });
 
-                                            // If the difference between the two arrays is not empty, then restart: bag reading, logger and mongodb server
-                                            // and delete the folder of local instance
-                                            if (difference.length != 0) {
-                                                console.log('MISSING TOPICS');
-                                                console.log(difference);
-                                                fs.rmSync(pathFolder, { recursive: true, force: true });
-
-                                                try {
-                                                    await process.kill(-bag.pid);
-                                                    await process.kill(-log1.pid);
-                                                    await process.kill(-mongodb.pid);
-                                    
-                                                    mongodb.on('exit', (code, signal) => {
-                                                        if (code) {
-                                                            console.error('mongodb server exited with code', code);
-                                                            return;
-                                                        } else if (signal) {
-                                                            console.error('mongodb server was killed with signal', signal);
-                                                            setTimeout(() => {create_local_db(msg, callback)}, 2500);
-                                                            return;
-                                                        }
-                                                        setTimeout(() => {create_local_db(msg, callback)}, 2500);
-                                                        return;
-                                                    });
-                                                } catch (e) {
-                                                    console.log(`Error on kill process ${e}`);
-                                                }
-                                            }
-                                        }
-                                    }, 6000);
-                                }
-                            });
-                        }, 3000);
-                    } catch (e) {
-                        console.log(`error on kill process ${e}`);
+                            try {
+                                await process.kill(-bag.pid);
+                                await process.kill(-log.pid);
+                                await process.kill(-mongodb.pid);
+                
+                                mongodb.on('exit', (code, signal) => {
+                                    if (code) {
+                                        console.error('mongodb server exited with code', code);
+                                        return;
+                                    } else if (signal) {
+                                        console.error('mongodb server was killed with signal', signal);
+                                        setTimeout(() => {create_local_db(msg, callback)}, 2500);
+                                        return;
+                                    }
+                                    setTimeout(() => {create_local_db(msg, callback)}, 2500);
+                                    return;
+                                });
+                            } catch (e) {
+                                console.log(`Error on kill process ${e}`);
+                            }
+                        }
                     }
-                }, 1000);
+                }, 6000);
                 first = false;
             }
         });
@@ -392,7 +378,7 @@ function create_local_db(msg, callback) {
                 console.log(`END READ FILE BAG`);
                 // '-' is for kill all subprocess of that process and await is for handle the promise
                 try {
-                    await process.kill(-log1.pid);
+                    await process.kill(-log.pid);
                 } catch (e) {
                     console.log(`error on kill process ${e}`);
                 }
@@ -505,6 +491,7 @@ server.listen(port, async () => {
     console.log(`Server running on http://localhost:${port}`);
 
     create_folder(PATH.join(__dirname, 'bag_file'));
+    create_folder(PATH.join(__dirname, 'export'));
 
     roscore = BASH.launch_roscore();
 });

@@ -105,10 +105,12 @@ module.exports = {
 
         let topics = [];
 
-        string.split('\n').slice(2).forEach(topic => {
-            let split = topic.trim().split(' ')[0];
-            if (split.indexOf("image_raw") >= 0)
-                topics.push(split);
+        string.split('\n').slice(1).forEach(topic => {            
+            let split = topic.trim().split(' ');
+            let data = split[split.length - 1];
+
+            if (data.indexOf('sensor_msgs/Image') >= 0)
+                topics.push(split[0]);
         });
 
         return topics;
@@ -121,7 +123,7 @@ module.exports = {
         );
         
         let result = mongo.output.toString();
-        // result.length - 7 for removing the last character that are: ]\nbye\n,
+        // result.length - 8 for removing the last character that are: ]\nbye\n,
         let string = result.slice(result.search("MongoDB server"), result.length - 8);
 
         let topics = [];
@@ -129,8 +131,7 @@ module.exports = {
         string.split('\n').slice(2).forEach(collection => {
             let split = collection.trim().replace(/",/, '').replace(/"/, '');
             split = split.replace(/"/, '');
-            if (split.indexOf("image_raw") >= 0)
-                topics.push(split);
+            topics.push(split);
         });
 
         return topics;
