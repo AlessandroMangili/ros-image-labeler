@@ -68,8 +68,8 @@ io.on('connection', (socket) => {
                     setTimeout(() => {create_local_db(msg, callback)}, 2500);
                     return;
                 });
-            } catch (e) {
-                console.log(`Error on kill process ${e}`);
+            } catch (error) {
+                console.log(`Error on kill process ${error}`);
             }
         } else
             create_local_db(msg, callback);
@@ -79,8 +79,8 @@ io.on('connection', (socket) => {
     socket.on('get topics', async (_, callback) => {
         try {
             callback(await MONGO.get_image_topics());
-        } catch (e) {
-            callback(String(e));
+        } catch (error) {
+            callback(String(error));
         }
     });
 
@@ -88,8 +88,8 @@ io.on('connection', (socket) => {
     socket.on('get all sequence numbers', async (msg, callback) => {
         try {
             callback(await MONGO.get_all_image_sequence_numbers(msg.topic, msg.fps));
-        } catch (e) {
-            callback(String(e));
+        } catch (error) {
+            callback(String(error));
         }
     });
 
@@ -97,8 +97,8 @@ io.on('connection', (socket) => {
         try {
             let document = await MONGO.get_db_info(msg.topic);
             callback(document == null ? -1 : document.seq);
-        } catch (e) {
-            callback(String(e));
+        } catch (error) {
+            callback(String(error));
         }
     });
 
@@ -108,9 +108,9 @@ io.on('connection', (socket) => {
             await MONGO.update_db_info(msg.topic, msg.seq);
             result = await MONGO.get_image(msg.topic, msg.seq);
             callback(IMAGE.create_image_buffer(result));
-        } catch (e) {
-            console.error(`error on encoding image: ${e}`);
-            callback(`error on encoding image: ${e}`);
+        } catch (error) {
+            console.error(`error on encoding image: ${error}`);
+            callback(`error on encoding image: ${error}`);
         }
     });
 
@@ -118,9 +118,9 @@ io.on('connection', (socket) => {
     socket.on('get bag files', async (_, callback) => {
         try {
             callback(await list_file_folder(PATH.join(__dirname, 'bag_file')));
-        } catch (e) {
-            console.error(`error on getting bag files: ${e}`);
-            callback(`error on getting bag files: ${e}`);
+        } catch (error) {
+            console.error(`error on getting bag files: ${error}`);
+            callback(`error on getting bag files: ${error}`);
         }
     });
 
@@ -158,11 +158,22 @@ io.on('connection', (socket) => {
                     setTimeout(() => {connect_db(path, callback)}, 2500);
                     return;
                 });
-            } catch (e) {
-                console.log(`Error on kill process ${e}`);
+            } catch (error) {
+                console.log(`Error on kill process ${error}`);
             }
         } else
             connect_db(path, callback);
+    });
+
+    // Export the db into json files
+    socket.on('export db', async (_, callback) => {
+        try {
+            // For getting the name of dataset
+            let pathSplit = mongodb.spawnargs[2].split(' ')[4].split('/');
+            callback(await MONGO.export_dataset(pathSplit[pathSplit.length - 1]));
+        } catch (error) {
+            callback(String(error));
+        }
     });
 
     // HANDLE BOUNDING BOX
@@ -172,8 +183,8 @@ io.on('connection', (socket) => {
         try {
             await MONGO.add_class(msg.name, msg.color);
             callback(`class ${msg.name} saved`);
-        } catch (e) {
-            callback(String(e));
+        } catch (error) {
+            callback(String(error));
         }
     });
 
@@ -182,8 +193,8 @@ io.on('connection', (socket) => {
         try {
             await MONGO.add_sub_class(msg.name, msg.sub_name);
             callback(`subclass ${msg.sub_name} of class ${msg.name} saved`);
-        } catch (e) {
-            callback(String(e));
+        } catch (error) {
+            callback(String(error));
         }
     });
 
@@ -191,8 +202,8 @@ io.on('connection', (socket) => {
         try {
             await MONGO.add_bounding_box_with_id(msg.topic, msg.image, msg.bounding_box, msg.id);
             callback('bounding box aggiunto');
-        } catch (e) {
-            callback(String(e));
+        } catch (error) {
+            callback(String(error));
         }
     }),
 
@@ -201,8 +212,8 @@ io.on('connection', (socket) => {
         try {
             await MONGO.add_bounding_box(msg.topic, msg.image, msg.bounding_box);
             callback('bounding box aggiunto');
-        } catch (e) {
-            callback(String(e));
+        } catch (error) {
+            callback(String(error));
         }
     });
 
@@ -210,8 +221,8 @@ io.on('connection', (socket) => {
     socket.on('get classes', async (msg, callback) => {
         try {
             callback(await MONGO.get_classes());
-        } catch (e) {
-            callback(String(e));
+        } catch (error) {
+            callback(String(error));
         }
     });
 
@@ -219,16 +230,16 @@ io.on('connection', (socket) => {
     socket.on('get sub_classes', async (msg, callback) => {
         try {
             callback(await MONGO.get_sub_classes(msg));
-        } catch (e) {
-            callback(String(e));
+        } catch (error) {
+            callback(String(error));
         }
     });
 
     socket.on('get only bounding_box', async (msg, callback) => {
         try {
             callback(await MONGO.get_bounding_box(msg.topic, msg.image));
-        } catch (e) {
-            callback(String(e));
+        } catch (error) {
+            callback(String(error));
         }
     });
 
@@ -236,8 +247,8 @@ io.on('connection', (socket) => {
     socket.on('get bounding_box', async (msg, callback) => {
         try {
             callback(await MONGO.get_bounding_box(msg.topic, msg.image));
-        } catch (e) {
-            callback(String(e));
+        } catch (error) {
+            callback(String(error));
         }
     });
 
@@ -246,8 +257,8 @@ io.on('connection', (socket) => {
         try {
             await MONGO.remove_class(msg);
             callback('class removed successfully');
-        } catch (e) {
-            callback(String(e));
+        } catch (error) {
+            callback(String(error));
         }
     });
 
@@ -256,8 +267,8 @@ io.on('connection', (socket) => {
         try {
             await MONGO.remove_sub_class(msg.name, msg.sub_name);
             callback('sub class removed successfully');
-        } catch (e) {
-            callback(String(e));
+        } catch (error) {
+            callback(String(error));
         }
     });
 
@@ -266,8 +277,8 @@ io.on('connection', (socket) => {
         try {
             await MONGO.remove_bounding_box(msg.topic, msg.image, msg.id);
             callback('bounding box removed successfully');
-        } catch (e) {
-            callback(String(e));
+        } catch (error) {
+            callback(String(error));
         }
     });
 
@@ -276,8 +287,8 @@ io.on('connection', (socket) => {
         try {
             await MONGO.update_bounding_box(msg.topic, msg.image, msg.old_rect, msg.new_rect);
             callback('bounding box update successfully');
-        } catch (e) {
-            callback(String(e));
+        } catch (error) {
+            callback(String(error));
         }
     });
 });
@@ -298,78 +309,53 @@ function create_local_db(msg, callback) {
         // Start command rosbag play 
         let bag = BASH.launch_rosbag_play(pathBag);
 
-        // Check if bag command has been killed or just terminated
+        // Check if bag command has been killed or just ended
         let bag_killed = false;
 
         // end is for checking if length of the bag file is less than 6 seconds
         let first = true, end = false;
-        let log1;
 
         log.stdout.on("data", (data) => {
             console.log(`read data from log node : ${data}`);
             // When the log node add succesfully the topics, then we can starts
-            if (first) {
+            if (first) {  
                 setTimeout(async () => {
-                    // Stop the play of bag file
-                    bag.stdin.write(" ");
-                    try {
-                        // Kill the old logger
-                        await process.kill(-log.pid);
+                    if (!end) {
+                        let bag_topics = BASH.info_rosbag(pathBag);
+                        let saved_topics = BASH.mongo_shell(62345);
+                        let difference = bag_topics.filter(value => !saved_topics.includes(value.charAt(0) == '/' ? value.slice(1).split("/").join("_") : value.split("/").join("_")));
 
-                        setTimeout(() => {
-                            first = true;
-                            // Start the new logger
-                            log1 = BASH.launch_log();
-                            log1.stdout.on("data", async (data) => {
-                                console.log(`read data from log node : ${data}`);
-                                if (first) {
-                                    // Restart the play of bag file
-                                    bag.stdin.write(" ");
-                                    first = false;
-                                    
-                                    setTimeout(async () => {
-                                        if (!end) {
-                                            let bag_topics = BASH.info_rosbag(pathBag);
-                                            let saved_topics = BASH.mongo_shell(62345);
-                                            let difference = bag_topics.filter(value => !saved_topics.includes(value.charAt(0) == '/' ? value.slice(1).split("/").join("_") : value.split("/").join("_")));
+                        // If the difference between the two arrays is not empty, then restart: bag reading, logger and mongodb server
+                        // and delete the folder of local instance
+                        if (difference.length != 0) {
+                            console.log('MISSING TOPICS');
+                            console.log(difference);
+                            // For removing the folder
+                            fs.rmSync(pathFolder, { recursive: true, force: true });
 
-                                            // If the difference between the two arrays is not empty, then restart: bag reading, logger and mongodb server
-                                            // and delete the folder of local instance
-                                            if (difference.length != 0) {
-                                                console.log('MISSING TOPICS');
-                                                console.log(difference);
-                                                fs.rmSync(pathFolder, { recursive: true, force: true });
-
-                                                try {
-                                                    await process.kill(-bag.pid);
-                                                    await process.kill(-log1.pid);
-                                                    await process.kill(-mongodb.pid);
-                                    
-                                                    mongodb.on('exit', (code, signal) => {
-                                                        if (code) {
-                                                            console.error('mongodb server exited with code', code);
-                                                            return;
-                                                        } else if (signal) {
-                                                            console.error('mongodb server was killed with signal', signal);
-                                                            setTimeout(() => {create_local_db(msg, callback)}, 2500);
-                                                            return;
-                                                        }
-                                                        setTimeout(() => {create_local_db(msg, callback)}, 2500);
-                                                        return;
-                                                    });
-                                                } catch (e) {
-                                                    console.log(`Error on kill process ${e}`);
-                                                }
-                                            }
-                                        }
-                                    }, 6000);
-                                }
-                            });
-                        }, 3000);
-                    } catch (e) {
-                        console.log(`error on kill process ${e}`);
+                            try {
+                                await process.kill(-bag.pid);
+                                await process.kill(-log.pid);
+                                await process.kill(-mongodb.pid);
+                
+                                mongodb.on('exit', (code, signal) => {
+                                    if (code) {
+                                        console.error('mongodb server exited with code', code);
+                                        return;
+                                    } else if (signal) {
+                                        console.error('mongodb server was killed with signal', signal);
+                                        setTimeout(() => {create_local_db(msg, callback)}, 2500);
+                                        return;
+                                    }
+                                    setTimeout(() => {create_local_db(msg, callback)}, 2500);
+                                    return;
+                                });
+                            } catch (error) {
+                                console.log(`Error on kill process ${error}`);
+                            }
+                        }
                     }
-                }, 1000);
+                }, 6000);
                 first = false;
             }
         });
@@ -392,9 +378,9 @@ function create_local_db(msg, callback) {
                 console.log(`END READ FILE BAG`);
                 // '-' is for kill all subprocess of that process and await is for handle the promise
                 try {
-                    await process.kill(-log1.pid);
-                } catch (e) {
-                    console.log(`error on kill process ${e}`);
+                    await process.kill(-log.pid);
+                } catch (error) {
+                    console.log(`error on kill process ${error}`);
                 }
                  
                 // Start the connection to mongodb client
@@ -403,9 +389,9 @@ function create_local_db(msg, callback) {
                     await MONGO.create_collections();
                     access_garanteed = true;
                     callback('connected to mongodb instance');
-                } catch (e) {
-                    console.error(`error on connection to mongodb: ${e}`);
-                    callback(`error on connection to mongodb: ${e}`);
+                } catch (error) {
+                    console.error(`error on connection to mongodb: ${error}`);
+                    callback(`error on connection to mongodb: ${error}`);
                 }
             }
         });
@@ -422,9 +408,9 @@ async function connect_db(path, callback) {
         await MONGO.connect();        
         access_garanteed = true;
         callback('connected to mongodb instance');
-    } catch (e) {
-        console.error(`error on connection to mongodb: ${e}`);
-        callback(`error on connection to mongodb: ${e}`);
+    } catch (error) {
+        console.error(`error on connection to mongodb: ${error}`);
+        callback(`error on connection to mongodb: ${error}`);
     }
 }
 
@@ -436,13 +422,13 @@ async function create_folder(path) {
         try {
             fs.mkdirSync(path, {recursive : true});
             return true;
-        } catch (e) {
-            console.error(`error on create folder at this path : ${path} with this error : ${e}`);
+        } catch (error) {
+            console.error(`error on create folder at this path : ${path} with this error : ${error}`);
             if (roscore) {
                 try {
                     await process.kill(-roscore.pid);
-                } catch (e) {
-                    console.log(`Error on kill process ${e}`);
+                } catch (error) {
+                    console.log(`Error on kill process ${error}`);
                 }
             }
             process.exit(1);
@@ -491,8 +477,8 @@ process.on('SIGINT', async () => {
         try {
             await process.kill(-mongodb.pid);
             process.exit();
-        } catch (e) {
-            console.log(`Error on kill process ${e}`);
+        } catch (error) {
+            console.log(`Error on kill process ${error}`);
             process.exit();
         }
     } else 
@@ -505,6 +491,7 @@ server.listen(port, async () => {
     console.log(`Server running on http://localhost:${port}`);
 
     create_folder(PATH.join(__dirname, 'bag_file'));
+    create_folder(PATH.join(__dirname, 'export'));
 
     roscore = BASH.launch_roscore();
 });

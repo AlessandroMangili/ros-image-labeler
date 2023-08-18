@@ -22,8 +22,8 @@ function get_all_topics() {
 }
 
 // Get all sequence numbers of the topic
-function get_all_sequence_numbers(topic, fps) {
-    socket.emit('get all sequence numbers', {topic: topic, fps: fps}, (res) => {
+function get_all_sequence_numbers(topic, fps_value) {
+    socket.emit('get all sequence numbers', {topic: topic, fps: fps_value}, (res) => {
         if (String(res).indexOf('error') >= 0) {
             alert(res);
             window.location.href = '/';
@@ -31,7 +31,14 @@ function get_all_sequence_numbers(topic, fps) {
             return;
         }
         images = res;
-        set_fps(select_topic.value, fps);
+        let FPS = images.length / (calculate_seconds(images[images.length - 1].header.stamp) - calculate_seconds(images[0].header.stamp));
+        /*
+        let space = (calculate_seconds(images[images.length - 1].header.stamp) - calculate_seconds(images[0].header.stamp)) / images.length;
+        console.log(space);
+        console.log(calculate_seconds(images[images.length - 1].header.stamp) - calculate_seconds(images[0].header.stamp));
+        */
+        warning.innerText = `Average FPS are ${FPS.toFixed(1)}`;
+        set_fps(select_topic.value, fps_value);
     });
 }
 
@@ -190,9 +197,9 @@ function get_bounding_box(topic, image) {
         }
 
         remove_local_bounding_box();
-
         bounding_box = res;
         let update_rect;
+        
         // Get all bounding box saved on the server
         res.forEach(node => {
             // Create a new rect when loaded from nodejs and add function for resizing
@@ -256,12 +263,10 @@ function get_bounding_box(topic, image) {
                         y : e.currentTarget.y(),
                         width : e.currentTarget.width(),
                     });
-
                     update_bounding_box(select_topic.value, image_numbers[index], update_rect, e.currentTarget.toObject());
+                    update_bounding_list(update_rect.id, e.currentTarget.toObject());
                 } else
-                    get_bounding_box(select_topic.value, image_numbers[index]);
-                    
-                tr.nodes([]);
+                    get_bounding_box(select_topic.value, image_numbers[index]);  
             });
 
             // On drag start, get the position of the rect
@@ -293,8 +298,8 @@ function get_bounding_box(topic, image) {
                         y : e.currentTarget.y(),
                         width : e.currentTarget.width(),
                     });
-                    
                     update_bounding_box(select_topic.value, image_numbers[index], update_rect, e.currentTarget.toObject());
+                    update_bounding_list(update_rect.id, e.currentTarget.toObject());
                 } else {
                     e.currentTarget.setAttrs({
                         x: update_rect.attrs.x,
@@ -318,7 +323,6 @@ function remove_class(name) {
             console.error(res);
             return;
         }
-        
         clear_sub_classes_sidebar();
         get_bounding_box(select_topic.value, image_numbers[index]);
     });
@@ -354,7 +358,17 @@ function update_bounding_box(topic, image, old_rect, new_rect) {
             console.error(res);
             return;
         }
-        get_bounding_box(select_topic.value, image_numbers[index]);
+    });
+}
+
+function export_db() {
+    socket.emit('export db', '', (res) => {
+        if (res.indexOf('error') >= 0) {
+            alert(res);
+            console.error(res);
+        }
+        console.log(res);
+        document.getElementById('export').disabled = false;
     });
 }
 

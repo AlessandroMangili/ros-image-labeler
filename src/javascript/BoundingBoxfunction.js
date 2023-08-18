@@ -2,10 +2,7 @@
 var WIDTH = 640;
 var HEIGHT = 480;
 
-let scaleX;
-let scaleY;
-
-let update_rect;
+let scaleX, scaleY, update_rect;
 
 var stage = new Konva.Stage({
     container: 'container',
@@ -19,6 +16,11 @@ stage.add(layer);
 
 var tr = new Konva.Transformer({
     rotateEnabled: false,
+    anchorFill : "#d9d9d9",
+    anchorCornerRadius : 5,
+    anchorSize : 15,
+    borderStroke: "red",
+    borderStrokeWidth : 7,
     ignoreStroke: true
 });
 layer.add(tr);
@@ -76,10 +78,12 @@ stage.on('mousemove touchmove', (e) => {
 
 stage.on('mouseup touchend', (e) => {
     // do nothing if we didn't start selection
-    if (!selectionRectangle.visible())
+    if (!selectionRectangle.visible()) {
         return;
+    }
     
     e.evt.preventDefault();
+
     // update visibility in timeout, so we can check it in click event
     setTimeout(() => {
         selectionRectangle.visible(false);
@@ -88,7 +92,6 @@ stage.on('mouseup touchend', (e) => {
     var shapes = stage.find(node => {
         return node._id > 14;
     });
-    
     var box = selectionRectangle.getClientRect();
     if (box.width != 0 && box.height != 0) {
         var selected = shapes.filter((shape) =>
@@ -172,6 +175,8 @@ stage.on('mouseup touchend', (e) => {
     tr.nodes(nodes);
 });
 
+prova = true;
+
 // clicks should select/deselect shapes
 stage.on('click', (e) => {
     // if we are selecting with rect, do nothing
@@ -190,18 +195,16 @@ stage.on('click', (e) => {
     const metaPressed = e.evt.shiftKey || e.evt.ctrlKey || e.evt.metaKey;
     const isSelected = tr.nodes().indexOf(e.target) >= 0;
 
-    if (!metaPressed && !isSelected) {
-        // if no key pressed and the node is not selected
-        // select just one
+    if (!metaPressed && !isSelected && e.target._id > 14) { //_id > 14 to avoid adding other components other than rectangles
+        // if no key pressed and the node is not selected, select just one
         tr.nodes([e.target]);
     } else if (metaPressed && isSelected) {
-        // if we pressed keys and node was selected
-        // we need to remove it from selection:
+        // if we pressed keys and node was selected, we need to remove it from selection:
         const nodes = tr.nodes().slice(); // use slice to have new copy of array
         // remove node from array
         nodes.splice(nodes.indexOf(e.target), 1);
         tr.nodes(nodes);
-    } else if (metaPressed && !isSelected) {
+    } else if (metaPressed && !isSelected && e.target._id > 14) {
         // add the node into selection
         const nodes = tr.nodes().concat([e.target]);
         tr.nodes(nodes);
