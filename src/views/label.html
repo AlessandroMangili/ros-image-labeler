@@ -18,7 +18,7 @@
         <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
         <!-- Konva bounding box -->
         <script src="https://unpkg.com/konva@8.4.2/konva.min.js"></script>
-        <link type="text/css" rel="stylesheet" href="/stylesheets/style.css">
+        <link type="text/css" rel="stylesheet" href="../public/css/style.css">
     </head>
     <body id="workspace">
         <!-- Left sidebar -->
@@ -32,10 +32,7 @@
         <!-- Right sidebar -->
         <div class="w3-sidebar w3-bar-block w3-card" id="sidebar-right">
             <header style = "padding-bottom: 2%;">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="" id="sub_classes">
-                    <label class="form-check-label"> subclasses </label>
-                </div>
+                <button class="btn btn-primary" id="add_subclass" type="submit">Add subclass</button>
             </header>
             <div class="list-group" id="sub_class_list"></div>
         </div>
@@ -94,12 +91,12 @@
                 <label id="image_sequence">/</label>
             </div>
             <p id="warning"></p>
-            <button class="btn btn-primary" style="left: 35%;" id="export" type="submit">Export</button>
+            <button class="btn btn-primary" style="left: 37%;" id="export" type="submit">Export</button>
         </div>
         
-        <script type="text/javascript" src="../javascript/Socketfunction.js"></script>
-        <script type="text/javascript" src="../javascript/Workspace.js"></script>
-        <script type="text/javascript" src="../javascript/BoundingBoxfunction.js"></script>
-        <script type="text/javascript" src="../javascript/Popupfunction.js"></script>
+        <script type="text/javascript" src="../public/javascript/index.js"></script>
+        <script type="text/javascript" src="../public/javascript/socket.js"></script>
+        <script type="text/javascript" src="../public/javascript/bounding.js"></script>
+        <script type="text/javascript" src="../public/javascript/popup.js"></script>
     </body>
 </html>
