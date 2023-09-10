@@ -54,14 +54,4 @@ RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc && source ~/.bashrc
 
 RUN pip install pymongo==2.7
 
-# Da vedere se eliminare
-RUN apt install -y \
-	build-essential \
-	python3-rosdep \
-	python3-rosinstall \
-	python3-rosinstall-generator \
-	python3-wstool \
-	&& rosdep init \
-	&& rosdep update
-
 CMD ["node", "./src/server.js"]
