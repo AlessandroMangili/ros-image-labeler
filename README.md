@@ -22,7 +22,7 @@ Semplice web app che permette di labellare ed esportare un set di immagini estra
 Per iniziare ad utilizzare l'applicazione, devi prima di tutto scaricare l'ultima versione oppure clonare la repository tramite comando
 
 ```bash
-git clone https://github.com/aislabunimi/tesi.triennale.mangili
+git clone https://github.com/AlessandroMangili/RosImageLabeling
 ```
 
 ## Installazione e avvio del server
