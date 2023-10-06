@@ -30,7 +30,6 @@
   },
   "homepage": "https://github.com/aislabunimi/tesi.triennale.mangili#readme",
   "dependencies": {
-    "big-json": "^3.2.0",
     "dotenv": "^16.3.1",
     "dotenv-expand": "^10.0.0",
     "ejs": "^3.1.9",

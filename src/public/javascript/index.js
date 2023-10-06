@@ -6,6 +6,8 @@ var local_bounding = document.getElementById('keep_bounding');
 var keeper_image_number = document.getElementById('image_sequence');
 var fps = document.getElementById('image_fps');
 var warning = document.getElementById('warning');
+var export_popup = document.getElementById('export_dialog');
+var body = document.body;
 
 var class_name = '';        // Save the current name of the selected class
 var sub_class_name = '';    // Save the current id of the selected sub_class
@@ -16,14 +18,14 @@ var change = false;         // Set true if topic change is done, otherwise false
 var bounding_box = [];
 var image_numbers = [];     // Keep all of the image sequence number
 var images = [];
+var classes = [];           // list of classes
 
 // nanosec to sec = nanosec / 1000000000
 const NANOSEC = 1000000000;
 
 
 document.getElementById('export').addEventListener('click', (e) => {
-    export_db();
-    document.getElementById('export').disabled = true;
+    get_all_labeled_topics();
 });
 
 // Show popup when the button is clicked
@@ -37,12 +39,12 @@ document.getElementById('add_subclass').addEventListener('click', (e) => {
 
 // Change the target when the topic is selected
 select_topic.addEventListener('change', (e) => {
+    get_image_size(e.currentTarget.value);
     fps.disabled = true;
     change = true;
     localStorage.setItem('topic', e.currentTarget.value);
     get_all_sequence_numbers(e.currentTarget.value, fps.value);
     remove_local_bounding_box();
-    
     get_bounding_box(e.currentTarget.value, image_numbers[index]);
 });
 
@@ -56,12 +58,13 @@ $('#workspace').ready((e) => {
 // Scroll through images back and forth
 $('#workspace').on('keydown', async (e) => {
     if (e.keyCode == 188 && index > 0) { // , prev
-        get_image(select_topic.value, image_numbers[--index], 'P');
+        get_image(select_topic.value, image_numbers[--index], 'L');
         get_bounding_box(select_topic.value, image_numbers[index]);
         keeper_image_number.innerText = `${index}/${image_numbers.length - 1}`;
         tr.nodes([]);
     } else if (e.keyCode == 190 && index < image_numbers.length - 1) { // . next
-        get_image(select_topic.value, image_numbers[++index], 'N');
+        get_image(select_topic.value, image_numbers[++index], 'L');
+        add_labeled_image(select_topic.value, image_numbers[index]);
         get_only_bounding_box(select_topic.value, image_numbers[index]);
         keeper_image_number.innerText = `${index}/${image_numbers.length - 1}`;
         tr.nodes([]);
@@ -76,27 +79,31 @@ fps.addEventListener('change', (e) => {
 
 document.getElementById('reset_image').addEventListener('click', (e) => {
     index = 0;
+    tr.nodes([]);
     keeper_image_number.innerText = `${index}/${image_numbers.length - 1}`;
-    get_image(select_topic.value, image_numbers[index], '');
+    get_image(select_topic.value, image_numbers[index], 'L');
     get_bounding_box(select_topic.value, image_numbers[index]);
 });
 
 document.getElementById('load_last_image').addEventListener('click', (e) => {
+    tr.nodes([]);
     load_last_image_sequence(select_topic.value);
 });
 
 // Create class
-function create_class(name, color) {
+function create_class(name, color, last_image) {
     var node = document.createElement('a');
-    node.innerHTML = name;
+    node.innerText = name;
     node.className = 'list-group-item list-group-item-action';
     node.title = color;
     node.style.color = color;
     node.style.borderWidth = 'medium';
 
     node.addEventListener('click', (e) => {
+        if (!e.target.className.includes('list-group-item'))
+            return;
         // Deselect if already selected
-        if (e.target.innerHTML == class_name) {
+        if (e.target.innerText == class_name) {
             e.target.style.borderColor = 'white';
             list_sub_class.style.visibility = 'hidden';
             class_name = '';
@@ -104,22 +111,39 @@ function create_class(name, color) {
             return;
         }
 
-        class_name = name;  
+        class_name = e.target.innerText;  
         color_pick = color;
         sub_class_name = '';
 
         list_sub_class.style.visibility = '';
 
-        get_sub_classes(name);
+        get_sub_classes(e.target.innerText);
+        set_selection(list_class, e.target);
+    });
+
+    create_update_popup(name, color);
+
+    node.addEventListener("contextmenu", function(e) {
+        tr.nodes([]);
+        e.preventDefault();
+        $(`#class_${e.target.innerText}_dialog`).dialog('open');
+        color_pick = color;
         set_selection(list_class, e.target);
     });
 
     node.addEventListener('dblclick', (e) => {
-        remove_class(name);
+        if (!e.target.className.includes('list-group-item'))
+            return;
+        remove_class(e.target.innerText);
+        $(`#${name}_dialog`) // For removing image popup
+        $(`#class_${name}_dialog`).remove(); // For removing update popup
         list_class.removeChild(e.target);
         class_name = '';
+        tr.nodes([]);
     });
 
+    create_image_popup(name, last_image);
+    node.appendChild(create_button(color));
     list_class.appendChild(node);
 }
 
@@ -183,7 +207,11 @@ function fill_topics(topics) {
 // Get id of the respective bounding box
 function get_id_by_bounding_box(array, rect) {
     let res = array.find(item => {
-        return JSON.stringify(rect) === JSON.stringify(item.rect);
+        return rect.attrs.width === item.rect.attrs.width &&
+            rect.attrs.height === item.rect.attrs.height &&
+            rect.attrs.x === item.rect.attrs.x &&
+            rect.attrs.y === item.rect.attrs.y &&
+            rect.attrs.stoke === item.rect.attrs.stoke;
     });
     if (res == undefined)
         return -1;
@@ -235,11 +263,10 @@ function set_fps(topic, fps_v) {
         load_last_image_sequence(topic);
         change = false;
     } else {
-        get_image(topic, image_numbers[index]);
+        get_image(topic, image_numbers[index], 'L');
         get_bounding_box(topic, image_numbers[index]);
         keeper_image_number.innerText = `${index}/${image_numbers.length - 1}`;
     }
-    
     fps.disabled = false;
 }
 
@@ -247,4 +274,135 @@ function calculate_seconds(stamp) {
     if (stamp == null)
         throw new Error('timestamp cannot be null');
     return stamp.secs + (stamp.nsecs / NANOSEC);
+}
+
+function remove_topics() {
+    let topics = export_popup.querySelectorAll('div');
+    for (let i = 1; i < topics.length; i++)
+        export_popup.removeChild(topics[i]);
+}
+
+function add_labeled_topics(topics) {
+    remove_topics();
+    topics.forEach(topic => {
+        let div = document.createElement('div');
+        div.className = 'form-check';
+
+        let input = document.createElement('input');
+        input.className = 'form-check-input';
+        input.type = 'checkbox';
+        input.value = topic;
+        div.appendChild(input);
+
+        let label = document.createElement('label');
+        label.className = 'form-check-label';
+        label.textContent = topic;
+        div.appendChild(label);
+
+        export_popup.appendChild(div);
+    });
+}
+
+function load_image_for_popup(name, buffer) {
+    document.getElementById(`${name}_image`).src = `data:image/png;base64,${buffer}`;
+}
+
+function create_update_popup(name, color) {
+    var form = document.createElement('form');
+    form.id = `class_${name}`;
+    var div1 = document.createElement('div');
+    div1.id = `class_${name}_dialog`;
+
+    var div2 = document.createElement('div');
+    div2.style.paddingBottom = '10px';
+
+    var label = document.createElement('label');
+    label.style.paddingBottom = '3px';
+
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'form-control';
+    input.id = `update_${name}_class`;
+    input.value = '';
+
+    div2.appendChild(label);
+    div2.appendChild(input);
+    div1.appendChild(div2);
+    form.appendChild(div1);
+    body.appendChild(form);
+    update_class_popup(name, color);
+}
+
+function create_image_popup(name, last_image) {
+    var form = document.createElement('form');
+    form.id = name;
+    var div1 = document.createElement('div');
+    div1.id = `${name}_dialog`;
+
+    var div2 = document.createElement('div');
+    div2.style.paddingBottom = '10px';
+    var img = document.createElement('img');
+    img.style.maxWidth = '100%';
+    img.style.maxHeight = '100%';
+    img.id = `${name}_image`;
+    if (last_image.topic != '' && last_image.seq != -1)
+        get_image(last_image.topic, last_image.seq, name);
+    else
+        img.src = '';
+    
+    div2.appendChild(img);
+    div1.appendChild(div2);
+    form.appendChild(div1);
+    body.appendChild(form);
+    image_popup(name);
+}
+
+function create_button(color) {
+    var button = document.createElement('button');
+    button.className = 'btn btn-primary rounded-circle';
+    button.style.textAlign = 'right';
+
+    var i = document.createElement('i');
+    i.className = 'fa fa-eye';
+    button.appendChild(i);
+
+    button.addEventListener('click', (e) => {
+        tr.nodes([]);
+        $(`#${e.currentTarget.parentElement.innerText}_dialog`).dialog('open');
+        if (e.currentTarget.parentElement.innerText == class_name)
+            return;
+        
+        class_name = e.currentTarget.parentElement.innerText;
+        color_pick = color;
+        list_sub_class.style.visibility = '';
+
+        get_sub_classes(e.currentTarget.parentElement.innerText);
+        set_selection(list_class, e.currentTarget.parentElement);
+    });
+    return button;
+}
+
+function change_image_popup(name, new_name) {
+    let form = document.getElementById(name);
+    let div = document.getElementById(`${name}_dialog`);
+    let img = document.getElementById(`${name}_image`);
+    $(`#${name}_dialog`).dialog("option", "title", new_name);
+    form.id = new_name;
+    div.id = `${new_name}_dialog`;
+    img.id = `${new_name}_image`;
+}
+
+function get_class_name(id) {
+    let result = classes.find(cl => cl.id === id);
+    if (result === undefined)
+        return '';
+    return result.name;
+}
+
+function get_local_class_id(name) {
+    console.log(name);
+    let result = classes.find(cl => cl.name === name);
+    if (result === undefined)
+        return -1;
+    return result.id;
 }

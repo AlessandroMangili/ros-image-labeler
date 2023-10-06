@@ -72,6 +72,25 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('get image size', async (msg, callback) => {
+        try {
+            callback(await mongo.get_image_size(msg));
+        } catch (error) {
+            console.error(`error on getting image size: ${error}`);
+            callback(`error on getting image size: ${error}`);
+        }
+    });
+
+    socket.on('get labeled topics', async (_, callback) => {
+        try {
+            let result = await mongo.get_labeled_topics();
+            callback(result);
+        } catch (error) {
+            console.error(`error on retrive labeled topics: ${error}`);
+            callback(`error on retrive labeled topics: ${error}`);
+        }
+    });
+
     // Send the first sequence number of that topic
     socket.on('get all sequence numbers', async (msg, callback) => {
         try {
@@ -156,11 +175,11 @@ io.on('connection', (socket) => {
     });
 
     // Export the db into json files
-    socket.on('export db', async (_, callback) => {
+    socket.on('export db', async (collections, callback) => {
         try {
             // For getting the name of dataset
             let path_split = mongodb.spawnargs[2].split(' ')[4].split('/');
-            callback(await mongo.export(path_split[path_split.length - 1]));
+            callback(await mongo.export(collections, path_split[path_split.length - 1]));
         } catch (error) {
             callback(String(error));
         }
@@ -190,14 +209,25 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Create a document with an empty bounding box array for that topic and image
+    socket.on('add labeled image', async (msg, callback) => {
+        try {
+            await mongo.add_labeled_image(msg.topic, msg.image);
+            callback('added labeled image');
+        } catch (error) {
+            console.error(`error on adding labeled image: ${error}`);
+            callback(`error on adding labeled image: ${error}`);
+        }
+    });
+
     // Add a specific bounding box
     socket.on('add bounding_box', async (msg, callback) => {   
         try {
-            await mongo.add_bounding_box(msg.topic, msg.image, msg.bounding_box, msg.id);
-            callback('bounding box aggiunto');
+            await mongo.add_bounding_box(msg.topic, msg.image, msg.bounding_box, msg.id, msg.class_id);
+            callback('bounding box added');
         } catch (error) {
-            console.error(`error on adding bounding box : ${error}`);
-            callback(`error on adding bounding box : ${error}`);
+            console.error(`error on adding bounding box: ${error}`);
+            callback(`error on adding bounding box: ${error}`);
         }
     });
 
@@ -208,6 +238,15 @@ io.on('connection', (socket) => {
         } catch (error) {
             console.error(`error on getting classes from db: ${error}`);
             callback(`error on getting classes from db: ${error}`);
+        }
+    });
+
+    socket.on('get class id', async (msg, callback) => {
+        try {
+            callback(await mongo.get_class_id(msg));
+        } catch (error) {
+            console.error(`error on getting the id of class ${msg}: ${error}`);
+            callback(`error on getting the id of class ${msg}: ${error}`);
         }
     });
 
@@ -237,6 +276,15 @@ io.on('connection', (socket) => {
         } catch (error) {
             console.error(`error on getting bounding box of topic ${msg.topic} from db: ${error}`);
             callback(`error on getting bounding box of topic ${msg.topic} from db: ${error}`);
+        }
+    });
+
+    socket.on('get last bounding box', async (msg, callback) => {
+        try {
+            let result = await mongo.get_last_bounding_box_of_class(msg);
+            callback(result)
+        } catch (error) {
+            callback(String(error));
         }
     });
 
@@ -272,6 +320,35 @@ io.on('connection', (socket) => {
             callback(`error on removing bounding box of ${msg.topic} from db: ${error}`);
         }
     });
+
+    socket.on('update class name', async (msg, callback) => {
+        try {
+            await mongo.update_class_name(msg.id, msg.name);
+            callback('updated class name');
+        } catch (error) {
+            console.error(error);
+            callback(`error: ${error}`);
+        }
+    });
+
+    // Update last labeled image of that class and return the buffer
+    socket.on('update class info', async (msg, callback) => {
+        try {
+            let id = await mongo.get_class_id(msg.class);
+            await mongo.update_class_with_last_labeled_image(msg.topic, msg.image, msg.class);
+            let result = await mongo.get_image(msg.topic, msg.image);
+            if (result == null) {
+                callback(' ');
+                return;
+            }
+            let bounding = await mongo.get_bounding_boxes(msg.topic, msg.image);
+            bounding = bounding.map(el => { if(el.id_class === id) return el; }).filter(item => item != undefined);
+            callback(image.buffer_bounding_image(result, bounding));
+        } catch (error) {
+            console.error(`error on updating class info of ${msg.class} from db: ${error}`);
+            callback(`error on updating class info of ${msg.class} from db: ${error}`);
+        }
+    })
 
     // Update a specific bounding box on drag or resize
     socket.on('update bounding_box', async (msg, callback) => {

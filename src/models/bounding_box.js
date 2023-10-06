@@ -9,8 +9,8 @@ const mongoSchema = new mongoose.Schema(
             id_sub_class: { type: Number, default: -1 },
             rect: {
                 attrs: {
-                    x: Number,
-                    y: Number,
+                    x: { type: Number, default: 0},
+                    y: { type: Number, default: 0},
                     width: Number,
                     height: Number,
                     name: String,

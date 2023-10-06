@@ -1,7 +1,5 @@
 // KONVA - BOUNDING BOX section
-var WIDTH = 640;
-var HEIGHT = 480;
-
+var WIDTH, HEIGHT;
 let scaleX, scaleY, update_rect;
 
 var stage = new Konva.Stage({
@@ -118,7 +116,7 @@ stage.on('mouseup touchend', (e) => {
             height: selectionRectangle.attrs.height,
             name: `${class_name}-`,
             stroke: color_pick,
-            strokeWidth: 3,
+            strokeWidth: 2,
             draggable: true,
         });
 
@@ -127,7 +125,7 @@ stage.on('mouseup touchend', (e) => {
             y: selectionRectangle.attrs.y,
             text: `${class_name}`,
             width: selectionRectangle.attrs.width,
-            fontSize: 14,
+            fontSize: 10,
             align: 'center',
             draggable : false,
         });
@@ -139,8 +137,8 @@ stage.on('mouseup touchend', (e) => {
             rect.name(rect.name() + `${sub_class_name}`);
             text.text(text.text() + ` ${sub_class_name}`);
         }
-        add_bounding_box(select_topic.value, image_numbers[index], rect.toObject(), -1);          
         
+        add_bounding_box(select_topic.value, image_numbers[index], rect.toObject(), -1, get_local_class_id(class_name));
         wantDraw = false;
     }
 
@@ -204,10 +202,8 @@ container.addEventListener('keydown', (e) => {
             });
             
             let id = get_id_by_bounding_box(bounding_box, node.toObject());
-
+            remove_bounding_box(select_topic.value, image_numbers[index], id, node.attrs.name.split('-')[0]);
             node.remove();
-
-            remove_bounding_box(select_topic.value, image_numbers[index], id);
         });
         tr.nodes([]);
     }

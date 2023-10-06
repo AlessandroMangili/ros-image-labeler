@@ -7,6 +7,7 @@
         <!-- Bootstrap -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
         <!-- Socker.io -->
         <script type="text/javascript" src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
         <!-- JQuery -->
@@ -21,6 +22,12 @@
         <link type="text/css" rel="stylesheet" href="../public/css/style.css">
     </head>
     <body id="workspace">
+        <!-- Loader -->
+        <div class="loader-wrapper" id="loader-wrapper">
+            <div class="loader" id="loader"></div>
+            <span class="loader-text" id="loader-text" style="display: inline-block; position: absolute;">Loading...</span>
+        </div>
+
         <!-- Left sidebar -->
         <div class="w3-sidebar w3-bar-block w3-card" id="sidebar-left">
             <header style = "padding-bottom: 2%;">
@@ -33,7 +40,7 @@
         <div class="w3-sidebar w3-bar-block w3-card" id="sidebar-right">
             <header style = "padding-bottom: 2%;">
                 <button class="btn btn-primary" id="add_subclass" type="submit">Add subclass</button>
-            </header>
+            </header>           
             <div class="list-group" id="sub_class_list"></div>
         </div>
 
@@ -47,7 +54,7 @@
                 <div style="text-align: center;">
                     <label style="padding-bottom: 3px;">Set the class color</label>
                 </div>
-                <input type="color" class="form-control form-control-color" title="Choose class color" id="class_color"/>
+                <input type="color" class="form-control-color" title="Choose class color" id="class_color"/>
             </div>
         </form>
 
@@ -57,6 +64,15 @@
                 <div style="align-items: center;">
                     <label style="padding-bottom: 3px;">Set the subclass name</label>
                     <input type="text" class="form-control" id="sub_class_name" value="">
+                </div>
+            </div>
+        </form>
+
+        <!-- Export popup -->
+        <form>
+            <div id="export_dialog">
+                <div style="text-align: center;">
+                    <label style="padding-bottom: 3px;">Select the topics to export</label>
                 </div>
             </div>
         </form>

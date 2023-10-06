@@ -12,6 +12,12 @@
         <title>AnnotationWebTool</title>
     </head>
     <body id="pageIndex">
+        <!-- Loader -->
+        <div class="loader-wrapper" id="loader-wrapper">
+            <div class="loader" id="loader"></div>
+            <span class="loader-text" id="loader-text" style="display: inline-block; position: absolute;">Loading...</span>
+        </div>
+
         <div class="row">
             <div class="col-6" id="leftCol">
                 <label>Select a bag file</label>
@@ -48,7 +54,7 @@
             document.getElementById('upload').addEventListener('click', e => {
                 e.preventDefault();
                 
-                if (bag.value != null)
+                if (bag.value != "null")
                     save_bag_into_mongo(bag.value);
             });
         </script>
