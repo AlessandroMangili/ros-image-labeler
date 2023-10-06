@@ -11,7 +11,16 @@
     "web app"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "system_update": "sudo -S apt update",
+    "dependency": "sudo apt -y install curl git cmake python-is-python3",
+    "setup_source": "sudo -S sh -c 'echo deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main > /etc/apt/sources.list.d/ros-latest.list'",
+    "setup_key": "curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -",
+    "ros": "sudo -S apt install -y ros-noetic-desktop",
+    "setup_bash": "echo 'source /opt/ros/noetic/setup.bash' >> ~/.bashrc",
+    "pymongo": "pip install pymongo==2.7",
+    "mongodb_packages": "sudo apt -y install ros-noetic-mongodb-store ros-noetic-mongodb-log",
+    "start": "npm run system_update && npm run dependency && npm run setup_source && npm run setup_key && npm run system_update && npm run ros && npm run setup_bash && npm run pymongo && npm run mongodb_packages && bash"
   },
   "author": "Alessandro Mangili",
   "license": "GPL-2.0",
@@ -21,7 +30,6 @@
   },
   "homepage": "https://github.com/aislabunimi/tesi.triennale.mangili#readme",
   "dependencies": {
-    "big-json": "^3.2.0",
     "dotenv": "^16.3.1",
     "dotenv-expand": "^10.0.0",
     "ejs": "^3.1.9",

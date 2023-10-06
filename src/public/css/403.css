@@ -1,0 +1,126 @@
+* {
+    -webkit-box-sizing: border-box;
+            box-sizing: border-box;
+    position: relative;
+    font-family: 'Lato', sans-serif;
+}
+
+#page403 {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background-color: #222;
+}
+
+.message {
+    width: 50%;
+}
+
+.message p {
+    font-family: 'Josefin Sans', sans-serif;
+    color: #c9c9c9;
+    font-size: 16px;
+    font-weight: 400;
+    margin-top: 0px;
+    margin-bottom: 15px;
+}
+
+.message h1 {
+    font-family: 'Josefin Sans', sans-serif;
+    color: #c9c9c9;
+    font-size: 30px;
+    margin-top: 5px;
+    margin-bottom: 0px;
+
+}
+
+.message a {
+    font-family: 'Josefin Sans', sans-serif;
+    font-size: 14px;
+    text-decoration: none;
+    text-transform: uppercase;
+    background: transparent;
+    color: #c9c9c9;
+    border: 2px solid #c9c9c9;
+    display: inline-block;
+    padding: 10px 25px;
+    font-weight: 700;
+    -webkit-transition: 0.2s all;
+    transition: 0.2s all;
+}
+
+.message a:hover {
+    color: #ffab00;
+    border-color: #ffab00;
+}
+
+.lock {
+    border-radius: 5px;
+    width: 55px;
+    height: 45px;
+    background-color: #ffab00;
+    animation: dip 1s;
+    animation-delay: 1.5s;
+}
+
+.lock::before, .lock::after {
+    content: "";
+    position: absolute;
+    border-left: 5px solid #ffab00;
+    height: 20px;
+    width: 15px;
+    left: calc(50% - 12.5px);
+}
+
+.lock::before {
+    top: -30px;
+    border: 5px solid #ffab00;
+    border-bottom-color: transparent;
+    border-radius: 15px 15px 0 0;
+    height: 30px;
+    animation: lock 2s, spin 2s;
+}
+
+.lock::after {
+    top: -10px;
+    border-right: 5px solid transparent;
+    animation: spin 2s;
+}
+
+@keyframes lock {
+    0% {
+        top: -45px;
+    }
+    65% {
+        top: -45px;
+    }
+    100% {
+        top: -30px;
+    }
+}
+
+@keyframes spin {
+    0% {
+        transform: scaleX(-1);
+        left: calc(50% - 30px);
+    }
+    65% {
+        transform: scaleX(1);
+        left: calc(50% - 12.5px);
+    }
+}
+
+@keyframes dip {
+    0% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(10px);
+    }
+    100% {
+        transform: translateY(0px);
+    }
+}
