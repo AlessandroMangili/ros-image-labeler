@@ -120,13 +120,13 @@ function get_image(topic, image, mode) {
 // Add class formed by name and color
 function add_class(name, color) {
     socket.emit('add class', {name: name, color: color}, (res) => {
-        if (res.indexOf(`MongoServerError`) >= 0) {
+        if (String(res).indexOf(`MongoServerError`) >= 0) {
             alert(res);
             console.error(res);
             return;
         }
-        console.info(res);
-        get_class_id(name);
+        console.info('Class added');
+        classes.push({ id: res, name: name });
     });
 }
 
@@ -176,18 +176,6 @@ function get_classes() {
             classes.push({ id: node.id, name: node.name });
             create_class(node.name, node.color, node.last_image);
         });
-    });
-}
-
-
-function get_class_id(name) {
-    socket.emit('get class id', name, (res) => {
-        if (String(res).indexOf('error') >= 0) {
-            alert(res);
-            console.error(res);
-            return;
-        }
-        classes.push({ id: res, name: name });
     });
 }
 
@@ -255,7 +243,7 @@ function get_bounding_box(topic, image) {
                 strokeWidth: 2,
                 draggable: true,
                 hitFunc: (context, shape) => {
-                    let border = 10;
+                    let border = 1;
                     context.beginPath();
                     // Upper side
                     context.rect(
@@ -299,6 +287,40 @@ function get_bounding_box(topic, image) {
                 align: 'center',
                 fontFamily: 'Lato',
                 draggable : false,
+                hitFunc: (context, shape) => {
+                    let border = 0;
+                    context.beginPath();
+                    // Upper side
+                    context.rect(
+                        0,
+                        0,
+                        shape.width() - border, 
+                        border
+                    );
+                    // Right side
+                    context.rect(
+                        shape.width() - border, 
+                        0, 
+                        border,
+                        shape.height() - border
+                    );
+                    // Lower side
+                    context.rect(
+                        0,
+                        shape.height() - border,
+                        shape.width() - border, 
+                        border
+                    );
+                    // Left side
+                    context.rect(
+                        0, 
+                        0,
+                        border, 
+                        shape.height() - border
+                    );
+                    context.closePath();
+                    context.fillStrokeShape(shape);
+                }
             });
 
             // On trasform start, get the position of the rect

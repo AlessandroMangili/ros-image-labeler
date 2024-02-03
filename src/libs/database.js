@@ -71,7 +71,8 @@ const get_image = async function(topic, seq) {
 const add_class = async function(name, color) {
     let document = await classes.findOne({}).sort({id: -1});
     // Auto-inc id??
-    await classes.create({id : document == null ? 0 : document.id + 1, last_image: {topic: '', seq: -1}, name: name, color: color, subclasses : []});
+    let res = await classes.create({id : document == null ? 0 : document.id + 1, last_image: {topic: '', seq: -1}, name: name, color: color, subclasses : []});
+    return res.id;
 };
 
 const add_sub_class = async function(name, sub_name) {
@@ -101,8 +102,8 @@ const add_bounding_box = async function(topic, image_number, bounding_box, id, c
     let res = await image.model(topic).findOne({'header.seq': image_number});
     if (res == null)
         throw new Error(`image with sequence number ${image_number} does not exist into DB`);
-    
-    let name = await get_class_name(class_id)
+       
+    let name = await get_class_name(class_id);
     let sub_name = bounding_box.attrs.name.split('-')[1];
     let obj_class = await classes.findOne({ name: name });
     if (obj_class == null)
@@ -111,8 +112,8 @@ const add_bounding_box = async function(topic, image_number, bounding_box, id, c
     let id_sub_class = obj_class.subclasses.find((sub_class) => sub_class.name == sub_name);
     id_sub_class = id_sub_class == undefined ? -1 : id_sub_class.id;
 
-    let id_bounding_box = (id >= 0) ? id : await get_max_id_bounding_box(`${topic}_bounding_box`);
-    res = await bounding.model(`${topic}_bounding_box`).findOneAndUpdate({ seq: image_number }, { $push: { bounding_box: { id: (id >= 0) ? id: id_bounding_box + 1, id_class: obj_class.id, id_sub_class: id_sub_class, rect: bounding_box }}}, { upsert: true, new: true });
+    let id_bounding_box = (id >= 0) ? id : await get_max_id_bounding_box(`${topic}_bounding_box`) + 1;
+    res = await bounding.model(`${topic}_bounding_box`).findOneAndUpdate({ seq: image_number }, { $push: { bounding_box: { id: id_bounding_box + 1, id_class: obj_class.id, id_sub_class: id_sub_class, rect: bounding_box }}}, { upsert: true, new: true });
     res = res.bounding_box;
     if (!res.some(doc => doc.id === (id >= 0) ? id : id_bounding_box + 1))
         throw new Error(`the bounding box has not been added`);

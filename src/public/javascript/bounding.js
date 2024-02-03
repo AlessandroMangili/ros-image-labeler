@@ -15,8 +15,8 @@ stage.add(layer);
 var tr = new Konva.Transformer({
     rotateEnabled: false,
     anchorFill : "#d9d9d9",
-    anchorCornerRadius : 5,
-    anchorSize : 15,
+    anchorCornerRadius : 20,
+    anchorSize : 18,
     borderStroke: "red",
     borderStrokeWidth : 7,
     ignoreStroke: true
@@ -200,8 +200,8 @@ container.addEventListener('keydown', (e) => {
             remove.forEach(text => {
                 text.remove();
             });
-            
-            let id = get_id_by_bounding_box(bounding_box, node.toObject());
+
+            let id = get_id_by_bounding_box(bounding_box, node);
             remove_bounding_box(select_topic.value, image_numbers[index], id, node.attrs.name.split('-')[0]);
             node.remove();
         });

@@ -190,8 +190,8 @@ io.on('connection', (socket) => {
     // Add new class
     socket.on('add class', async (msg, callback) => {
         try {
-            await mongo.add_class(msg.name, msg.color);
-            callback(`class ${msg.name} saved`);
+            
+            callback(await mongo.add_class(msg.name, msg.color));
         } catch (error) {
             console.error(`error on saving ${msg.name} class: ${error}`);
             callback(`error on saving ${msg.name} class: ${error}`);
@@ -238,15 +238,6 @@ io.on('connection', (socket) => {
         } catch (error) {
             console.error(`error on getting classes from db: ${error}`);
             callback(`error on getting classes from db: ${error}`);
-        }
-    });
-
-    socket.on('get class id', async (msg, callback) => {
-        try {
-            callback(await mongo.get_class_id(msg));
-        } catch (error) {
-            console.error(`error on getting the id of class ${msg}: ${error}`);
-            callback(`error on getting the id of class ${msg}: ${error}`);
         }
     });
 
