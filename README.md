@@ -1,56 +1,59 @@
 # Web tool for Labeling
 
+# Italiano
+
 Semplice web app che permette di labellare ed esportare un set di immagini estratte da un file bag.
 
 ## Indice
 
 - [Prerequisiti](#prerequisiti)
-- [Per iniziare](#per-iniziare)
-- [Installazione e avvio del server](#installazione-e-avvio-del-server)
-- [Caricare ed estrarre un file bag](#caricare-ed-estrarre-un-file-bag)
-- [Classe e sottoclasse](#classe-e-sottoclasse)
-- [Bounding box](#bounding-box)
-- [Navigazione nel dataset](#navigazione-nel-dataset)
-- [Esportazione](#esportazione)
+- [Installazione](#installazione)
+- [Avvio del server](#avvio-del-server)
+- [Utilizzo](#utilizzo)
+    - [Estrarre dal file bag](#estrarre-dal-file-bag)
+    - [Creare una classe](#creare-una-classe)
+    - [Disegnare un bounding box](#disegnare-un-bounding-box)
+    - [Navigare nel dataset](#navigare-nel-dataset)
+    - [Esportazione](#esportazione)
+- [Errori e bugs](#errori-e-bugs)
 
 ## Prerequisiti
 
 - [Docker](https://docs.docker.com/engine/install/)
 
-## Per iniziare
+## Installazione
 
-Per iniziare ad utilizzare l'applicazione, devi prima di tutto scaricare l'ultima versione oppure clonare la repository tramite comando
-
+Una volta controllato di soddisfare i [prerequisiti](#prerequisiti) e aver scaricato la cartella contenente tutti i file, o tramite download o tramite comando
 ```bash
-git clone https://github.com/AlessandroMangili/RosImageLabeling
+git clone https://github.com/aislabunimi/tesi.triennale.mangili
 ```
 
-## Installazione e avvio del server
-
-Una volta scaricata/clonata la repository, posizionarsi nella __root__ della cartella e utilizzare il comando
+Ora, posizionarsi nella __root__ della cartella e costruire l'immagine del progetto lanciando il comando
 
 ```bash
 docker build -t app .
 ```
 
-per costruire l'immagine del progetto tramite i comandi presenti all'interno del Dockerfile.
-
-Una volta terminata la creazione dell'immagine, dobbiamo avviare il container sulla porta `8000` tramite comando
+Una volta terminata la creazione dell'immagine, avviare il container sulla porta `8000` tramite comando
 
 ```bash
 docker run -i -t -p 8000:8000 app bash
 ```
 
-A questo punto, sarà sufficiente usare il comando 
+## Avvio del server
+
+Una volta terminata l'installazione con successo, è possibile avviare l'applicazione con il seguente comando:
 ```bash
 node src/server.js
 ```
 
-per avviare il server e poter iniziare a usare l'applicazione.
+## Utilizzo
 
-## Caricare ed estrarre un file bag
+### Estrarre dal file bag
 
-Per caricare un file bag all'interno del container docker, usare il seguente comando 
+Dopo aver avviato il server, è necessario selezionare il file bag che si desidera estrarre. Questo file deve essere presente all'interno del container nella cartella `src/bag_file/`. Il processo di estrazione dei topics potrebbe richiedere diversi minuti, a seconda delle dimensioni del file. Una volta completato, sarete reindirizzati alla pagina di labeling.
+
+Per caricare un file bag all'interno della cartella `src/bag_file` del container docker , usare il seguente comando 
 
 ```bash
 docker cp ./bag_file CONTAINER_ID:/app/src/bag_file
@@ -64,41 +67,148 @@ dove:
 docker ps
 ```
 
-![containerID](https://github.com/AlessandroMangili/RosImageLabeling/assets/86318455/2ec55493-3fe9-40e8-8793-47da4adba6c1)
-
-Il processo di estrazione dei topics potrebbe richiedere anche svariati minuti, a seconda delle dimensioni del file, e una volta completato si verrà reindirizzati alla pagina di labeling.
-
-Una volta effettuato il processo di estrazione, non sarà più necessario eseguirlo per quel file bag siccome basterà caricare l'istanze già salvata selezionandola nella scelta di destra.
+Dopo aver terminato il processo di estrazione, non sarà più necessario eseguirlo per quel file bag, poiché sarà sufficiente caricare l'istanza già salvata selezionandola dalla lista a destra.
 
 ![home](https://github.com/aislabunimi/tesi.triennale.mangili/assets/86318455/0221e234-2c7e-472e-b814-27421ffa14a8)
 
-## Iniziare a labellare
+### Creare una classe
 
-### Classe e sottoclasse
+Per iniziare il processo di labeling di un'immagine, è necessario prima creare una classe utilizzando il pulsante situato nella parte superiore della colonna di sinistra. Il nome della classe appena creata non deve corrispondere né a un nome già in uso, né al colore assegnato a un'altra classe.
 
-Per poter iniziare a labellare un'immagine, bisogna prima creare una classe attraverso il pulsante in alto presente nella colonna di sinistra. La classe da creare non potrà contenere né un nome già in uso, né il colore. Se si intendesse aumentare la granularità dell'annotazione, è possibile aggiungere una sottoclasse tramite il pulsante in alto presente nella colonna di destra. Anche in questo caso il nome della sottoclasse non potrà essere uguale a quello di un'altra sottoclasse presente all'interno della suddetta classe.
+Se si desidera aumentare ulteriormente la precisione dell'annotazione, è possibile aggiungere una sottoclasse tramite il pulsante nella parte superiore della colonna di destra. In questo caso, anche il nome della sottoclasse non può essere identico a quello di altre sottoclassi all'interno della stessa classe.
 
-Per eliminare una classe o sottoclasse è sufficiente fare doppio click sulla classe/sottoclasse in questione, eliminando di conseguenza tutti i relativi bounding box.
+Per eliminare una classe o una sottoclasse, è sufficiente fare doppio clic sulla classe o sottoclasse desiderata, eliminando tutti i relativi bounding box associati.
+Per modificare il nome di una classe, invece, è possibile fare clic con il tasto destro sulla classe da modificare e inserire il nuovo nome desiderato.
 
-### Bounding box
+### Disegnare un bounding box
 
-Per iniziare ad annotare i vari oggetti, bisogna selezionare la classe di riferimento e tramite la combinazione di tasti `ctrl + click mouse` sarà possibile iniziare a tracciare il rettangolo che permetterà di delimitare l'oggetto in questione tramite lo spostamento del mouse. \
-Una volta creato, saranno possibili le operazioni di ridimensionamento, spostamento e rimozione (tramite selezione e tasto `canc` per quest'ultima), prestando però attenzione al fatto il bounding box non potrà essere né creato, né spostato e né ridimensionato al di fuori dello spazio di lavoro.
+Per iniziare ad annotare gli oggetti, è necessario selezionare la classe di riferimento e utilizzare la combinazione di tasti `Ctrl + clic sinistro del mouse` per iniziare a tracciare il rettangolo che delimita l'oggetto in questione. Una volta creato, è possibile eseguire operazioni di ridimensionamento, spostamento e rimozione (utilizzando la selezione e il tasto `Canc` per rimuovere), ma è importante notare che il bounding box non può essere creato, spostato o ridimensionato al di fuori dello spazio di lavoro.
 
-> le scritte all'interno del bounding box non sono targettabili, quindi se questo avrà dimensioni molto ridotte per spostarlo bisognerà selezionare i lati.
+> Le scritte all'interno del bounding box non sono selezionabili, quindi se il bounding box è molto piccolo, per spostarlo è necessario selezionare i lati.
 
-Per poter copiare i bounding box da un'immagine alla successiva, è possibile riporre la spunta sulla casella `keep bounding box`. Prestare attenzione al fatto che tenendo premuto o schiacciando ripetutamente in modo troppo velocemente il tasto per passare all'immagine successiva potrebbe causare la mancata copia dei bounding box per quell'immagine.
+Per copiare i bounding box da un'immagine alla successiva, è possibile attivare la casella di controllo `keep bounding box`. Tuttavia, è importante prestare attenzione al fatto che tenere premuto o cliccare rapidamente il tasto per passare all'immagine successiva potrebbe causare la mancata copia dei bounding box per quella specifica immagine.
 
-### Navigazione nel dataset
+### Navigare nel dataset
 
-Ogni volta che viene cambiato il topic di lavoro, verrà caricata l'ultima immagine visitata per quel topic.
+Ogni volta che si cambia il topic di lavoro, verrà caricata l'ultima immagine visitata per quel topic.
 
-Per potersi spostare all'immagine successiva o precedente, vengono utilizzati rispettivamente i tasti `.` e `,` mentre per velocizzare il processo è possibile servirsi dei due bottoni `reset to first image` per ritornare alla prima immagine e `reload from last image` per ritornare all'ultima visitata.
+Per spostarsi all'immagine successiva o precedente, è possibile utilizzare rispettivamente i tasti `.` e `,`. Per velocizzare il processo, ci sono due pulsanti disponibili: `reset to first image` per tornare alla prima immagine e `reload from last image` per tornare all'ultima immagine visitata.
 
-Ulteriore funzione che permette di selezionare un gruppo di immagini sono la scelta degli __fps__ posti in basso a sinistra, i quali ovviamente non possono essere $\leq 0$.
+Un'altra funzione utile permette di selezionare un gruppo di immagini attraverso la scelta dei __fps__ posti in basso a sinistra. È importante notare che il valore degli fps non può essere inferiore o uguale a zero.
+
+È possibile visualizzare l'ultimo bounding box disegnato per una classe facendo clic sul pulsante accanto al nome della classe.
 
 ### Esportazione
 
-Attraverso il pulsante posto in basso sarà possibile esportare all'interno della cartella `src/export/nome_dataset/` tutte le collections inerenti a: immagini, classi/sottoclassi e posizioni dei bounding box per ogni immagine divise per topic. Tutti questi file sono esportati in formato `.json` e la struttura di ognuno di essi è consultabile dagli __schema__ presenti all'interno della cartella `src/models/`.
+Attraverso il pulsante situato nella parte inferiore, è possibile selezionare i topic da esportare nella cartella `src/export/nome_dataset/`. Per ciascun topic esportato, verrà creata una cartella che include a sua volta due sottocartelle: una denominata `/label` contenente un file __JSON__ per ciascuna immagine, rappresentando tutti i bounding box disegnati per quella specifica immagine, e una cartella `/message` che contiene l'immagine salvata nel formato `.png`.
 
-![label](https://github.com/aislabunimi/tesi.triennale.mangili/assets/86318455/4a3dad15-a300-4242-8f7b-c98381d8109a)
+![label](https://github.com/aislabunimi/tesi.triennale.mangili/assets/86318455/e68a3f57-bf59-4596-8a5d-dcf2afe866b8)
+
+## Errori e bugs
+
+In caso di errori, apri un nuovo [issue](https://github.com/aislabunimi/tesi.triennale.mangili/issues) e riporta l'errore incontrato.
+
+# English
+
+A simple web application that allows you to label and export a set of images extracted from a bag file.
+
+## Index
+
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Server startup](#server-startup)
+- [Usage](#usage)
+    - [Extract from bag file](#extract-from-bag-file)
+    - [Create a class](#create-a-class)
+    - [Draw a bounding box](#draw-a-bounding-box)
+    - [Dataset Navigation](#dataset-navigation)
+    - [Export](#export)
+- [Errors and Bugs](#errors-and-bugs)
+
+## Prerequisites
+
+- [Docker](https://docs.docker.com/engine/install/)
+
+## Installation
+
+Once you have confirmed that you meet the [prerequisites](#prerequisites) and have downloaded the folder containing all the files, either through download or using the following command:
+```bash
+git clone https://github.com/aislabunimi/tesi.triennale.mangili
+```
+
+Navigate to the __root__ of the folder of the folder and build the project's image by running the command.
+```bash
+docker build -t app .
+```
+
+After the image creation is complete, start the container on port `8000` using the command
+```bash
+docker run -i -t -p 8000:8000 app bash
+```
+
+## Server startup
+
+Once all dependencies are successfully installed, you can start the application with the following command:
+```bash
+node src/server.js
+```
+
+## Usage
+
+### Extract from bag file
+
+After starting the server, you need to select the bag file you want to extract. This file must be located inside the `src/bag_file/` folder. The process of extracting topics may take several minutes, depending on the file's size. Once completed, you will be redirected to the labeling page.
+
+To upload a bag file into the `src/bag_file` folder within the docker container, use the following command
+
+```bash
+docker cp ./bag_file CONTAINER_ID:/app/src/bag_file
+```
+
+where:
+- `./bag_file` the file path you want to upload
+- `CONTAINER_ID` the running container's ID, which can be seen using the command
+
+```bash
+docker ps
+```
+
+After finishing the extraction process, there is no need to run it again for that bag file. You can simply load the previously saved instance by selecting it from the list on the right.
+
+![home](https://github.com/aislabunimi/tesi.triennale.mangili/assets/86318455/0221e234-2c7e-472e-b814-27421ffa14a8)
+
+### Create a class
+
+To start the image labeling process, you must first create a class using the button at the top of the left column. The name of the newly created class must not match an existing name or the color assigned to another class.
+
+If you wish to further enhance annotation precision, you can add a subclass using the button at the top of the right column. In this case, the subclass name must also be unique within the same class.
+
+To delete a class or subclass, simply double-click on the desired class or subclass, which will delete all associated bounding boxes. To change the name of a class, right-click on the class you want to edit and enter the desired new name.
+
+### Draw a bounding box
+
+To begin annotating objects, select the reference class and use the `Ctrl + left mouse click` combination to start drawing the rectangle that outlines the object in question. Once created, you can perform resizing, moving, and removal operations (using selection and the `Canc` key to remove). However, it's important to note that the bounding box cannot be created, moved, or resized outside the workspace.
+
+> Text inside the bounding box is not selectable, so if the bounding box is very small, you need to select the sides to move it.
+
+To copy bounding boxes from one image to the next, you can enable the `keep bounding box` checkbox. However, be cautious that holding down or quickly clicking the button to move to the next image might result in the bounding boxes not being copied for that specific image.
+
+### Dataset navigation
+
+Each time you change the working topic, the last visited image for that topic will be loaded.
+
+To navigate to the next or previous image, you can use the `.` and `,` keys, respectively. To expedite the process, there are two available buttons: `reset to first image` to return to the first image and `reload from the last image` to return to the last visited image.
+
+Another useful feature allows you to select a group of images by choosing the __fps__ located at the bottom left. It's important to note that the fps value cannot be less than or equal to zero.
+
+You can view the last drawn bounding box for a class by clicking the button next to the class name.
+
+### Export
+
+Through the button at the bottom, you can select topics to export to the `src/export/dataset_name/` folder. For each exported topic, a folder will be created, which includes two subfolders: one named `/label` containing a __JSON__ file for each image, representing all the drawn bounding boxes for that specific image, and a `/message` folder containing the image saved in `.png` format.
+
+![label](https://github.com/aislabunimi/tesi.triennale.mangili/assets/86318455/e68a3f57-bf59-4596-8a5d-dcf2afe866b8)
+
+## Errors and Bugs
+
+In case of errors, please open a new [issue](https://github.com/aislabunimi/tesi.triennale.mangili/issues) and report the encountered error.

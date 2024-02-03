@@ -255,7 +255,7 @@ function get_bounding_box(topic, image) {
                 strokeWidth: 2,
                 draggable: true,
                 hitFunc: (context, shape) => {
-                    let border = 10;
+                    let border = 1;
                     context.beginPath();
                     // Upper side
                     context.rect(
@@ -299,6 +299,40 @@ function get_bounding_box(topic, image) {
                 align: 'center',
                 fontFamily: 'Lato',
                 draggable : false,
+                hitFunc: (context, shape) => {
+                    let border = 0;
+                    context.beginPath();
+                    // Upper side
+                    context.rect(
+                        0,
+                        0,
+                        shape.width() - border, 
+                        border
+                    );
+                    // Right side
+                    context.rect(
+                        shape.width() - border, 
+                        0, 
+                        border,
+                        shape.height() - border
+                    );
+                    // Lower side
+                    context.rect(
+                        0,
+                        shape.height() - border,
+                        shape.width() - border, 
+                        border
+                    );
+                    // Left side
+                    context.rect(
+                        0, 
+                        0,
+                        border, 
+                        shape.height() - border
+                    );
+                    context.closePath();
+                    context.fillStrokeShape(shape);
+                }
             });
 
             // On trasform start, get the position of the rect

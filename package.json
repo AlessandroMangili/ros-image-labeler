@@ -1,7 +1,7 @@
 {
-  "name": "labeler-di-dataset",
+  "name": "ros-image-labeler",
   "version": "1.0.0",
-  "description": "Labeler di dataset per computer vision e ros",
+  "description": "A web appplication to annotate images from rosbag files ",
   "main": "src/server.js",
   "keywords": [
     "labeler",
@@ -18,17 +18,19 @@
     "setup_key": "curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -",
     "ros": "sudo -S apt install -y ros-noetic-desktop",
     "setup_bash": "echo 'source /opt/ros/noetic/setup.bash' >> ~/.bashrc",
+    "downgrade_setuptools": "pip install 'setuptools<58.0.0'",
     "pymongo": "pip install pymongo==2.7",
+    "upgrade_setuptools": "pip install -U setuptools",
     "mongodb_packages": "sudo apt -y install ros-noetic-mongodb-store ros-noetic-mongodb-log",
-    "start": "npm run system_update && npm run dependency && npm run setup_source && npm run setup_key && npm run system_update && npm run ros && npm run setup_bash && npm run pymongo && npm run mongodb_packages && bash"
+    "start": "npm run system_update && npm run dependency && npm run setup_source && npm run setup_key && npm run system_update && npm run ros && npm run setup_bash && npm run downgrade_setuptools && npm run pymongo && npm run upgrade_setuptools && npm run mongodb_packages && bash"
   },
   "author": "Alessandro Mangili",
   "license": "GPL-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aislabunimi/tesi.triennale.mangili"
+    "url": "https://github.com/AlessandroMangili/ros-image-labeler"
   },
-  "homepage": "https://github.com/aislabunimi/tesi.triennale.mangili#readme",
+  "homepage": "https://github.com/AlessandroMangili/ros-image-labeler#readme",
   "dependencies": {
     "dotenv": "^16.3.1",
     "dotenv-expand": "^10.0.0",

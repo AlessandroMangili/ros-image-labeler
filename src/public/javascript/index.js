@@ -132,14 +132,17 @@ function create_class(name, color, last_image) {
     });
 
     node.addEventListener('dblclick', (e) => {
-        if (!e.target.className.includes('list-group-item'))
-            return;
-        remove_class(e.target.innerText);
-        $(`#${name}_dialog`) // For removing image popup
-        $(`#class_${name}_dialog`).remove(); // For removing update popup
-        list_class.removeChild(e.target);
-        class_name = '';
-        tr.nodes([]);
+        var result = window.confirm(`Vuoi veramente cancellare la classe ${e.target.innerText} e tutti i bounding boxes relativi?`);
+        if (result) {      
+            if (!e.target.className.includes('list-group-item'))
+                return;
+            remove_class(e.target.innerText);
+            $(`#${name}_dialog`) // For removing image popup
+            $(`#class_${name}_dialog`).remove(); // For removing update popup
+            list_class.removeChild(e.target);
+            class_name = '';
+            tr.nodes([]);
+        }
     });
 
     create_image_popup(name, last_image);
@@ -167,9 +170,12 @@ function create_sub_class(sub_name) {
     });
 
     node.addEventListener('dblclick', (e) => {
-        remove_sub_class(class_name, sub_name);
-        list_sub_class.removeChild(e.target);
-        sub_class_name = '';
+        var result = window.confirm(`Vuoi veramente cancellare la sotto-classe ${e.target.innerText} della classe ${class_name} e tutti i bounding boxes relativi?`);
+        if (result){
+            remove_sub_class(class_name, sub_name);
+            list_sub_class.removeChild(e.target);
+            sub_class_name = '';
+        }
     });
 
     list_sub_class.appendChild(node);
@@ -400,7 +406,6 @@ function get_class_name(id) {
 }
 
 function get_local_class_id(name) {
-    console.log(name);
     let result = classes.find(cl => cl.name === name);
     if (result === undefined)
         return -1;
